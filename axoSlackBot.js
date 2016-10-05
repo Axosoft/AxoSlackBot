@@ -45,7 +45,7 @@ function trackBot(bot) {
 
 controller.on('create_bot',function(bot,config) {
 
-  if (_bots[bot.env.token]) {
+  if (_bots[bot.config.token]) {
     // already online! do nothing.
   } else {
     bot.startRTM(function(err) {
