@@ -1,0 +1,16 @@
+{
+  "name": "AxoSlackBot",
+  "version": "1.0.0",
+  "description": "Slack experimental",
+  "main": "axoSlackBot.js",
+  "scripts": {
+    "start": "node axoSlackBot.js"
+  },
+  "author": "B.Amiri",
+  "license": "ISC",
+  "dependencies": {
+    "request": "^2.75.0",
+    "mongodb": "^2.2.10",
+    "botkit-storage-mongo": "^1.0.4"
+  }
+}

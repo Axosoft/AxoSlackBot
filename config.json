@@ -1,0 +1,7 @@
+{
+  "clientId": "xxxx",
+  "clientSecret": "xxxx",
+  "port": 1234,
+  "redirectUri": "xxxx",
+  "mongoUri": "xxxx"
+}
