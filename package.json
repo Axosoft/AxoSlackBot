@@ -9,8 +9,8 @@
   "author": "B.Amiri",
   "license": "ISC",
   "dependencies": {
-    "request": "^2.75.0",
+    "botkit-storage-mongo": "^1.0.4",
     "mongodb": "^2.2.10",
-    "botkit-storage-mongo": "^1.0.4"
+    "request": "^2.75.0"
   }
 }
