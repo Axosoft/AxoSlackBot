@@ -266,6 +266,40 @@ timeFormat: function(input){
               return strDate;
 },
 
+makeAxosoftRequest: function(axosoftBaseUrl, axosoftAccessToken, controller, userId){ 
+                        return new Promise(function(resolve, reject){
+                          if(userId == undefined){
+                              var params = {
+                                access_token: axosoftAccessToken,
+                                page_size: 5,
+                                user_type: "user",
+                                columns: "item_type,name,id,priority,due_date,workflow_step,custom_fields.custom_1"
+                              };
+                          }else{
+                              var params = {
+                                access_token: axosoftAccessToken,
+                                page_size: 5,
+                                user_type: "user",
+                                user_id: userId,
+                                columns: "item_type,name,id,priority,due_date,workflow_step,custom_fields.custom_1"
+                            };
+                          }
+
+                            module.exports.makeRequest("GET",`${axosoftBaseUrl}${controller}`, params, function(error, response, body){
+                               if(!error && response.statusCode == 200){
+                                    var BODY = JSON.parse(body);
+                                    if(BODY.data.length != 0){
+                                      resolve(BODY);
+                                    }
+                                    reject("-1");
+                                }
+                                else{
+                                  reject(null);
+                                }
+                            });
+                        });
+                  },
+//TODO this method should have => MongoClient.connect within its body!
 updateDataBaseDocument: function(database, team, user, userIdAxosoft, callback) {
                             database.collection('users').findAndModify(
                             {id: user, team_id: team}, 
@@ -385,6 +419,64 @@ getUserIdAxosoft: function(axosoftBaseUrl,axosoftAccessToken, slackAccessToken, 
                       });
 },
 
+saveAxosoftAcessToken: function(userId, teamId, accessToken){
+                          MongoClient.connect(config.mongoUri, function(err, database){
+                              if(err) return console.log(err);
+                              database.collection('users').findAndModify(
+                              {id: userId, team_id: teamId}, 
+                              [],  
+                              {$set: {axosoftAccessToken: accessToken}}, 
+                              {}, 
+                              function(err, object) {
+                                  if (err){
+                                      console.warn(err.message); 
+                                  }else{
+                                      console.dir(object);
+                                  }
+                              });
+                          });
+},
+saveAxosoftUrl: function(userData, baseUrl) {
+                  MongoClient.connect(config.mongoUri, function(err, database){
+                      if(err) return console.log(err);
+                      database.collection('teams').findAndModify(
+                        {team_id: userData.team}, 
+                        [],  
+                        {$set: {axosoftBaseURL: baseUrl}}, 
+                        {}, 
+                        function(err, object) {
+                            if (err){
+                                console.warn(err.message); 
+                            }else{
+                                console.dir(object);
+                            }
+                      });
+                  });
+},
+
+checkForAxosoftAccessTokenForUser: function(slackTeamId, slackUserId){
+                                return new Promise(function(resolve, reject){
+                                    MongoClient.connect(config.mongoUri, function(err, database){
+                                          if(err) {
+                                            console.log(err);
+                                          }else{
+                                            database.collection('users').find({"team_id":slackTeamId, "id": slackUserId }).toArray(function(err, results){
+                                              if(err){
+                                                console.log(err);
+                                              }else{
+                                                  if((results[0] === undefined) || (results[0].axosoftAccessToken === undefined)){
+                                                    console.log("There is no document with the specified slack user id in our data base!");
+                                                    reject("-1"); // -1 means no userAxosoftAccessToken exist!
+                                                  }else{
+                                                    resolve(results[0].axosoftAccessToken);
+                                                  }
+                                              }
+                                            });
+                                          }
+                                    });
+                                });
+},
+
 retrieveDataFromDataBase: function(slackTeamId, slackUserId, documentName){
                               return new Promise(function(resolve, reject){
                                   var axosoftAccessToken, axosoftBaseURL, slackAccessToken, axosoftUserId;
@@ -398,22 +490,16 @@ retrieveDataFromDataBase: function(slackTeamId, slackUserId, documentName){
                                         database.collection('users').find({"team_id":slackTeamId, "id": slackUserId }).toArray(function(err, results){
                                             if(err) return console.log(err);
                                               if(results[0] === undefined){
-                                                console.log("There is no document with the specified id in our data base!");
-                                                reject({
-                                                  userIdAxosoft : null
-                                                });
-                                            }else{
-                                                  if(results[0].userIdAxosoft === undefined){
-                                                    console.log("There is no userIdAxosoft within the found document!");
-                                                    resolve({
-                                                      userIdAxosoft: "-1"
-                                                    });
-                                                  }else{
-                                                      resolve({
-                                                        userIdAxosoft: results[0].userIdAxosoft
-                                                      });
-                                                  }
-                                            }
+                                                console.log("There is no document with the specified slack user id in our data base!");
+                                                reject({userIdAxosoft : null});
+                                              }else{
+                                                    if(results[0].userIdAxosoft === undefined){
+                                                      console.log("There is no userIdAxosoft within the found document!");
+                                                      resolve({userIdAxosoft: "-1"});
+                                                    }else{
+                                                        resolve({userIdAxosoft: results[0].userIdAxosoft});
+                                                    }
+                                              }
                                         });
                                     }else if(documentName === "teams"){
                                         database.collection('teams').find({"id":slackTeamId}).toArray(function(err, results){
@@ -440,12 +526,7 @@ retrieveDataFromDataBase: function(slackTeamId, slackUserId, documentName){
                               });
                           },
 
-
-checkForProperty: function(object, propertyName){
-                         var formatDueDate = function(dueDate){
-                              if(dueDate == null)return '';
-                              else return module.exports.timeFormat(dueDate);
-                         };
+};
 
                         if(propertyName.includes(".")){
                             var afterDotPropertyName = propertyName.substr(propertyName.indexOf('.') + 1);
