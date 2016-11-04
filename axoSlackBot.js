@@ -39,29 +39,33 @@ controller.setupWebserver(config.port,function(err,webserver) {
 
     controller.webserver.get('/authorizationCode', function(req, res) {
         var code = req.query.code;
-        var axoBaseUrl = req.query.state.split('&')[0];
-        var userId = req.query.state.split('&')[1].substring(req.query.state.split('&')[1].indexOf("=")+1);
-        var teamId = req.query.state.split('&')[2].substring(req.query.state.split('&')[2].indexOf("=")+1);
-        var channelId = req.query.state.split('&')[3].substring(req.query.state.split('&')[3].indexOf("=")+1);
+        var axoBaseUrl = req.headers.referer.substr(0, req.headers.referer.indexOf("auth"));
+        var userId = req.query.state.split('&')[0].substring(req.query.state.split('&')[0].indexOf("=")+1);
+        var teamId = req.query.state.split('&')[1].substring(req.query.state.split('&')[1].indexOf("=")+1);
+        var channelId = req.query.state.split('&')[2].substring(req.query.state.split('&')[2].indexOf("=")+1);
         var params = {
           grant_type: "authorization_code",
           code: code,
-          redirect_uri: config.redirectUri + "authorizationCode",
+          redirect_uri: config.redirectUri+ "authorizationCode",
           client_id: config.axosoftClientId,
           client_secret: config.axosoftClientSecret 
         };
 
         helper.makeRequest("GET", `${axoBaseUrl}/api/oauth2/token`, params, function(error, response, body){
             var Body = JSON.parse(body);
-            helper.saveAxosoftAcessToken(userId, teamId,Body.access_token);
-            helper.retrieveDataFromDataBase(teamId, userId,"teams")
-              .then(function(returnedDataFromDb){
-                slackToken = returnedDataFromDb.slackAccessToken;
-                helper.sendTextToSlack(slackToken, channelId, "Authorization successful.what can I do for ya boss?");
-              }).catch(function(reason){
-                 console.log(reason);
-              });
-            
+            if(Body.access_token != null){
+                helper.saveAxosoftAcessToken(userId, teamId, Body.access_token);
+                helper.retrieveDataFromDataBase(teamId, userId,"teams")
+                .then(function(returnedDataFromDb){
+                  slackToken = returnedDataFromDb.slackAccessToken;
+                  helper.sendTextToSlack(slackToken, channelId, "Authorization successful.what can I do for ya boss?");
+                  res.send('<html><head><title>Axosoft Slack Authorized</title></head><body><h1>Authorization successful</h1><br/><h4>please close this window</h4></body></html>');
+                }).catch(function(reason){
+                  console.log(reason);
+                });
+            }else{
+                res.send('<html><head><title>Axosoft Slack Authorized</title></head><body><h1>Authorization failed</h1><br/><h4></h4></body></html>');
+            }
         });
     });
 });
@@ -113,179 +117,98 @@ controller.on('rtm_close',function(bot) {
 
 controller.hears('(get my|get) (.*)(items)',['direct_message,direct_mention,mention'],function(bot,message) { 
     var channelId = message.channel;
-    var slackToken;
     helper.checkForAxosoftAccessTokenForUser(message.team, message.user)
     .then(function(axosoftToken){
-        //TODO get axosoftAccessToken and get data from axosoft!
-        var tete= "";
-    })
-    .catch(function(reason){
-        helper.retrieveDataFromDataBase(message.team, message.user,"teams")
-        .then(function(returnedDataFromDb){
-          if (returnedDataFromDb.axosoftBaseURL == undefined) {
-              bot.startConversation(message, function(err,convo) {
-                convo.ask("what's your base URL holmes? i.e. https://example.axosoft.com", function(response, convo) {
-                var baseUrl = response.text.replace(/[<>]/g, '');
-
-                helper.saveAxosoftUrl(message, baseUrl);
-                helper.makeRequest('GET', baseUrl + '/api/version', {}, function(error, response, body){
-                  var Body = JSON.parse(body);
-                  if(!error && response.statusCode == 200){
-                    if(Body.data.hasOwnProperty("revision") && Body.data.revision >= 11218){
-
-                      var AxosoftLoginUrl = baseUrl 
-                      + '/auth?response_type=code'
-                      + '&client_id='+ config.axosoftClientId
-                      + '&redirect_uri=' + config.redirectUri + "authorizationCode" 
-                      + '&scope=read write'
-                      + '&expiring=false'
-                      + `&state=${baseUrl}`+ urlEncode(`&userId=${message.user}&teamId=${message.team}&channelId=${channelId}`);
-
-                      convo.stop();
-                      helper.retrieveDataFromDataBase(message.team, message.user,"teams")
-                        .then(function(returnedDataFromDb){
-                          slackToken = returnedDataFromDb.slackAccessToken;
-                          //helper.saveAxosoftUrl(message.team, baseUrl);
-                          helper.sendTextToSlack(slackToken, channelId, `<${AxosoftLoginUrl}|Authorize me>`);
-                        })
-                        .catch(function(reason){
-                          // can not get slackToken from DB . TODO figure out a cool handler here 
-                          var test = "";
-                        })
-
-                        var tete = "";
-                      //helper.sendTextToSlack("xoxb-85724422965-lTeBVQzqV1Z1LlXhJU8qUmAU", channelId, `Hello, you are not authorized from the Axosoft. please click on the following link to get authorized! <http://www.nasa.gov//| Authorize me>` )
-                        // var params = {
-                        //   response_type: "code",
-                        //   client_id: config.axosoftClientId,
-                        //   redirect_uri: config.redirectUri + "authorizationCode",
-                        //   //redirectUri: "http%3A%2F%2Flocalhost%3A4114%2FauthorizationCode",
-                        //   scope: "read write",
-                        //   state: "",
-                        //   expiring: false
-                        // };
-
-                        // helper.makeRequest("GET", baseUrl+'/auth', params, function(error, response, body){
-                        //    // var Body = JSON.parse(body);
-                        //    var test = "";
-                        // });
-                    }
-                    else{
-                      convo.say("Please upgrade to Axosoft 17 or later");
-                      convo.next();
-                    }
-                   
-                  }else{
-                    convo.say("Not a valid Axosoft URL");
-                    convo.next();
-                  }
-                });
-                });
-              });
-          }else {
-              slackToken = returnedDataFromDb.slackAccessToken;
-              axosoftUrl = returnedDataFromDb.axosoftBaseURL;
-              var params = {
-                response_type: "code",
-                client_id: config.axosoftClientId,
-                redirect_uri: config.redirectUri + "/authorizationCode",
-                scope: "read write",
-                state: "",
-                expiring: false
-              };
-
-              helper.sendTextToSlack(slackToken, channelId, `Hello, you are not authorized from the Axosoft. please click on the following link to get authorized! <${baseURL}/auth?${params}/| Authorize me>` )
+          var params = {
+              access_token: axosoftToken,
+              columns: "item_type,name,id,priority,due_date,workflow_step,custom_fields.custom_1",
+              page_size: 10
+          };
+          if(message.match[2] == 'open ') {
+            params.filters = 'completion_date="1899-01-01"';
+          }
+          if(message.match[2] == 'closed '){
+            params.sort_fields = 'completion_date DESC';
+          }
+          if(message.match[2] == 'updated '){
+            params.sort_fields = 'last_updated_date_time DESC';
           }
 
-        }).catch(function(){
-          console.log(reason);
-          helper.sendTextToSlack(slackToken, channelId,"I could not find the required data in database to get data from axosoft!");
-        })
-        
+          //paging
+          var page = 1;
+          var pageMatches = message.text.match(/(.*)(page\s)(\d+)/i);
+
+          if (pageMatches) {
+            page = pageMatches[3];
+            params.page = page;
+          }
+
+          helper.retrieveDataFromDataBase(message.team, message.user,"teams")
+          .then(function(returnedData){
+              var axoBaseUrl = returnedData.axosoftBaseURL;
+              var slackToken = returnedData.slackAccessToken;
+
+              helper.assignAxoId(message, params, axoBaseUrl, axosoftToken)
+              .then(function(params){
+                    helper.makeRequest("GET", `${axoBaseUrl}/api/v5/features`, params, function(error, response, body){
+                    if(!error && response.statusCode == 200){
+                        var BODY = JSON.parse(body);
+                        if(BODY.data.length == 0){
+                          if(message.text.includes("page")){
+                              helper.sendTextToSlack(slackToken, channelId, `I could not find any \`${message.match[2]}\` features on page ${page}!`)
+                          }
+                          else if(params.filters.includes("assigned_to")){
+                              helper.sendTextToSlack(slackToken, channelId, `I could not find any \`${message.match[2]}\` features assigned to you in Axosoft!`)
+                          }
+                          else{
+                              helper.sendTextToSlack(slackToken, channelId, `I could not find any \`${message.match[2]}\` features that you are!`);
+                          }
+                        }
+                        else{
+                          if((params.sort_fields != undefined)&&(params.sort_fields == 'completion_date DESC')){
+                                //eliminate items that are not closed
+                                BODY.data = BODY.data.filter(function(val){
+                                  return val.completion_date != null;
+                                });
+                                if(params.page != undefined){BODY.requestedPage = pageMatches[3];}
+                                if(BODY.data.length == 0){
+                                  helper.sendTextToSlack(slackToken, channelId, `I could not find any closed items on page ${page}!`)
+                                }
+                                else{
+                                  helper.sendDataToSlack(slackToken, channelId, BODY);
+                                }
+                          }else{
+                            if(params.page != undefined){BODY.requestedPage = pageMatches[3];}
+                            helper.sendDataToSlack(slackToken, channelId, BODY);
+                          }
+                        }
+                    }else{
+                      helper.sendTextToSlack(slackToken, channelId,"I could not connect to axosoft");
+                    }
+                  });
+              });
+          })
+          .catch(function(reason){
+              /// axosoftBaseURL does not exists!
+              console.log(reason);
+          });
+    })
+    .catch(function(reason){
+      console.log(reason);
+      if(reason == "No collection"){
+         helper.createNewCollection(message)
+         .then(function(val){
+           helper.authorizeUserwithoutCollection(bot, message);
+         }).catch(function(reason){
+           console.log("something went wrong with building a collection for the new user in the data base!");
+           //TODO not a bad idea to slack the user! 
+         })
+      }else if(reason == "No axosoft Access Token"){
+         helper.authorizeUserWithoutAccessToken(bot,message);
+      }else{
+        //// 
+      }
     });
-
-//     helper.retrieveDataFromDataBase(message.team, message.user,"teams")
-//      .then(function(returnedDataFromDb){
-//           axosoftToken = returnedDataFromDb.axosoftAccessToken;
-//           slackToken = returnedDataFromDb.slackAccessToken;
-//           axosoftUrl = returnedDataFromDb.axosoftBaseURL;
-
-//           var params = {
-//             access_token: axosoftToken,
-//             columns: "item_type,name,id,priority,due_date,workflow_step,custom_fields.custom_1",
-//             page_size: 10
-//           };
-
-//           helper.getUserIdAxosoft(axosoftUrl, axosoftToken, slackToken, message)
-//             .then(function(userIdAxo){
-//                 axosoftUserId = userIdAxo;
-//                 if(message.match[1] == 'get my') {
-//                   params.filters = `assigned_to.id=${axosoftUserId}`;
-//                 }
-//                 if(message.match[2] == 'open ') {
-//                   params.filters = 'completion_date="1899-01-01"';
-//                 }
-//                 if(message.match[2] == 'closed '){
-//                   params.sort_fields = 'completion_date DESC';
-//                 }
-//                 if(message.match[2] == 'updated '){
-//                   params.sort_fields = 'last_updated_date_time DESC';
-//                 }
-
-//                 //paging
-//                 var page = 1;
-//                 var pageMatches = message.text.match(/(.*)(page\s)(\d+)/i);
-//                 if (pageMatches) {
-//                   page = pageMatches[3];
-//                   params.page = page;
-//                 }
-
-//                 helper.makeRequest("GET", `${axosoftUrl}items`, params, function(error, response, body){
-//                   if(!error && response.statusCode == 200){
-//                       var BODY = JSON.parse(body);
-//                       if(BODY.data.length == 0){
-//                         if(message.text.includes("page")){
-//                             helper.sendTextToSlack(slackToken, channelId, `I could not find any items on page ${page}!`)
-//                         }
-//                         else if(params.filters.includes("assigned_to")){
-//                             helper.sendTextToSlack(slackToken, channelId, "I could not find any items assigned to you in axosoft!")
-//                         }
-//                         else{
-//                             helper.sendTextToSlack(slackToken, channelId, "I could not find any items in axosoft!");
-//                         }
-//                       }
-//                       else{
-//                         if((params.sort_fields != undefined)&&(params.sort_fields == 'completion_date DESC')){
-//                               //eliminate items that are not closed
-//                               BODY.data = BODY.data.filter(function(val){
-//                                 return val.completion_date != null;
-//                               });
-//                               if(params.page != undefined){BODY.requestedPage = pageMatches[3];}
-//                               if(BODY.data.length == 0){
-//                                 helper.sendTextToSlack(slackToken, channelId, `I could not find any closed items on page ${page}!`)
-//                               }
-//                               else{
-//                                 helper.sendDataToSlack(slackToken, channelId, BODY);
-//                               }
-//                         }else{
-//                           if(params.page != undefined){BODY.requestedPage = pageMatches[3];}
-//                           helper.sendDataToSlack(slackToken, channelId, BODY);
-//                         }
-//                       }
-//                   }else{
-//                     helper.sendTextToSlack(slackToken, channelId,"I could not connect to axosoft");
-//                   }
-//                 });
-//             }).catch(function(reason){
-//                  helper.sendTextToSlack(slackToken, channelId, `I could not find any user with \`${reason}\` email address in axosoft!`);
-//             })
-
-
-//     })
-//     .catch(function(reason){
-//        console.log(reason);
-//        helper.sendTextToSlack(slackToken, channelId,"I could not find the required data in database to get data from axosoft!");
-//     });
 });
 
 controller.hears('(.*)(axo)(d|f|t|i|\\s*)(\\s|.*)(\\d+|\\s+)(.*)',['direct_message,direct_mention,mention'],function(bot,message) { 
