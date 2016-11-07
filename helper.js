@@ -6,7 +6,6 @@ const striptags = require('striptags');
 const urlEncode = require('urlencode');
 
 module.exports = {
-
 makeRequest: function(method, URL, params, callback){
               request({
                   url: URL,
@@ -26,45 +25,35 @@ sendTextToSlack: function(slackToken, channelId, txt){
                   });
 },
 
-sendDataToSlack: function(slackAccessToken, channelId, body, axoBaseUrl, axosoftToken){
-                  var pageNumber = Math.ceil((body.metadata.total_count/body.metadata.page_size));
-                  var params; 
-                  var formatWorkItemType = function(workItemType){
-                    if(workItemType == null)return '';
-                    else{
-                      return `\n *Work Item Type:* ${axosoftData.workItemType}`;
-                    }
-                  };
+formatText: function(body, message){
+                var pageNumber = Math.ceil((body.metadata.total_count/body.metadata.page_size));
+                var txt = "Here are";
+                if(message.input.includes("my")){
+                  txt = txt + " your";
+                }
+                if(body.requestedPage != undefined){
+                  return `${txt} ${message[2]} items (page ${body.requestedPage} of ${pageNumber})`;
+                }else if(pageNumber>1){
+                  return `${txt} ${message[2]} items page 1 of ${pageNumber}`
+                }else{
+                  return `${txt} ${message[2]} items`
+                };
+},
 
-                  var formatText = function(body){
-                          if(body.metadata.total_count > body.metadata.page_size){
-                              if(body.requestedPage != undefined){
-                                return `Here are your items (page ${body.requestedPage} of ${pageNumber})`;
-                              }
-                              else{
-                                return `Here are your items (page 1 of ${pageNumber})`;
-                              }
-                          }
+sendDataToSlack: function(slackAccessToken, channelId, body, message){
+                  var attachmentArrays = [];
+                  var itemType, axosoftData;
+                  var formatDueDate = function(dueDate){
+                          if(dueDate == null)return '';
                           else{
                              return '\`Due: ' + module.exports.timeFormat(dueDate) + '\`';
                           }
                   };
-
-                  var formatText = function(txt){
-                          if(body.requestedPage != undefined){
-                             return `Here are your items (page ${body.requestedPage} of ${pageNumber})`;
-                          }else if(pageNumber>1){
-                             return `page 1 of ${pageNumber}`
-                          }else{
-                            return
-                          };
-                  };
-
-                  const extraPromises = [];
-                  const itemsWithParent = [];
-                  if (axosoftData.parent > 0) {
-                    if((parentIds.indexOf(Body.data[x].parent.id) == -1)){
-                        parentIds.push(Body.data[x].parent.id);
+               
+                  var formatWorkItemType = function(workItemType){
+                    if(workItemType == null)return '';
+                    else{
+                      return `\n *Work Item Type:* ${axosoftData.workItemType}`;
                     }
                     itemsWithParent.push(Body.data[x]);
                   }else{
@@ -102,18 +91,18 @@ sendDataToSlack: function(slackAccessToken, channelId, body, axoBaseUrl, axosoft
                            
                         };
 
-                        if((body.data[x].completion_date != null) && (body.data[x].due_date == null)){
+                        if(body.data[x].completion_date != null){
                               axosoftData.completionDate = body.data[x].completion_date;
                               attachmentArrays.push({
                                 color: "#36a64f",
-                                text: `<${axosoftData.link}| Axo:${axosoftData.axosoftId}>  ${formatWorkItemType(axosoftData.workItemType)} \`${axosoftData.workFlowStep}\` ${axosoftData.axosoftItemName} ${'\`Completion Date: ' + axosoftData.completionDate + '\`'}`,
+                                text: `<${axosoftData.link}| ${axosoftData.axosoftId}>  ${formatWorkItemType(axosoftData.workItemType)} \`${axosoftData.workFlowStep}\` ${axosoftData.axosoftItemName} ${'\`Completion Date: ' + module.exports.timeFormat(axosoftData.completionDate) + '\`'}`,
                                 mrkdwn_in:["text"]
                               });
-                        }else{
+                        }else if(body.data[x].due_date != null) {
                             axosoftData.dueDate = body.data[x].due_date;
                             attachmentArrays.push({
                               color: "#36a64f",
-                              text: `<${axosoftData.link}| Axo:${axosoftData.axosoftId}>  ${formatWorkItemType(axosoftData.workItemType)} \`${axosoftData.workFlowStep}\` ${axosoftData.axosoftItemName} ${formatDueDate(axosoftData.dueDate)}`,
+                              text: `<${axosoftData.link}|${axosoftData.axosoftId}>  ${formatWorkItemType(axosoftData.workItemType)} \`${axosoftData.workFlowStep}\` ${axosoftData.axosoftItemName} ${formatDueDate(axosoftData.dueDate)}`,
                               mrkdwn_in:["text"]
                             });
                         }
@@ -123,7 +112,7 @@ sendDataToSlack: function(slackAccessToken, channelId, body, axoBaseUrl, axosoft
                         token: slackAccessToken,
                         channel:channelId,
                         mrkdwn: true,
-                        text: formatText(body),
+                        text: module.exports.formatText(body, message),
                         attachments: JSON.stringify(attachmentArrays) 
                   };
                   module.exports.makeRequest("GET","https://slack.com/api/chat.postMessage", params, function(err, response, body){
@@ -161,14 +150,14 @@ timeFormat: function(input){
               
               console.log(date.getTime()==today.getTime());
               
-              if (today.getTime() == date.getTime()) {
+              if(today.getTime() == date.getTime()){
                   strDate = "Today";
-              } else if (yesterday.getTime() == date.getTime()) {
+              }else if(yesterday.getTime() == date.getTime()){
                   strDate = "Yesterday";
-              } else if (tomorrow.getTime() == date.getTime()) {
+              }else if(tomorrow.getTime() == date.getTime()){
                   strDate = "Tomorrow";
-              } else {
-                  strDate = months[date.getMonth()] + " " + date.getDate();
+              }else{
+                  strDate = months[date.getMonth()] + " " +  date.getDate();
               }
               return strDate;
 },
@@ -302,6 +291,57 @@ checkForAxosoftAccessTokenForUser: function(slackTeamId, slackUserId){
                                 });
 },
 
+checkForProperty: function(object, propertyName){
+                         var formatDueDate = function(dueDate){
+                              if(dueDate == null)return '';
+                              else return module.exports.timeFormat(dueDate);
+                         };
+
+                        if(propertyName.includes(".")){
+                            var afterDotPropertyName = propertyName.substr(propertyName.indexOf('.') + 1);
+                            var beforeDotPropertyName = propertyName.substr(0, propertyName.indexOf('.'));
+
+                            if(!object.hasOwnProperty(beforeDotPropertyName)){
+                              return null;
+                            }
+
+                            if((object[beforeDotPropertyName])[afterDotPropertyName] == null || (object[beforeDotPropertyName])[afterDotPropertyName] == ""){
+                              return null;
+                            }
+                            else{
+                              return (object[beforeDotPropertyName])[afterDotPropertyName];
+                            }
+                        }
+                        else{
+                          if(!object.hasOwnProperty(propertyName)){
+                              return null;
+                            }else if(propertyName == "description"){
+                              if(object[propertyName] == ""){
+                                return null;
+                              }else{
+                                return striptags(object[propertyName]);
+                              }
+                            }else if(propertyName == "assigned_to"){
+                              if(((object[propertyName])["name"] == "") || ((object[propertyName])["name"] == null)){
+                                return null;
+                                //return "[None]";
+                              }else{
+                                return (object[propertyName])["name"];
+                              }
+                            }
+                            else if(propertyName == "due_date"){
+                              if((object[propertyName] == "") || (object[propertyName] == null)){
+                                return null;
+                              }else{
+                                return formatDueDate(object[propertyName]);
+                              }
+                            }
+                            else{
+                              return object[propertyName];
+                            }
+                        }
+                    },
+
 retrieveDataFromDataBase: function(slackTeamId, slackUserId, documentName){
                               return new Promise(function(resolve, reject){
                                   var axosoftAccessToken, axosoftBaseURL, slackAccessToken, axosoftUserId;
@@ -377,7 +417,7 @@ authorizeUserWithoutAccessToken:function(bot, message){
         module.exports.retrieveDataFromDataBase(message.team, message.user,"teams")
           .then(function(returnedData){
             if (returnedData.axosoftBaseURL == undefined) {
-                //module.exports.authorizeUserwithoutCollection(bot, message);
+                module.exports.authorizeUserwithoutCollection(bot, message);
             }else {
                 //axosoftBaseURL exists in database!
                 var slackToken = returnedData.slackAccessToken;
@@ -388,9 +428,9 @@ authorizeUserWithoutAccessToken:function(bot, message){
                 + '&redirect_uri=' + config.redirectUri + "authorizationCode" 
                 + '&scope=read write'
                 + '&expiring=false'
-                //+ `&state=${axosoftUrl}`+ urlEncode(`&userId=${message.user}&teamId=${message.team}&channelId=${message.channel}`);
                 + "&state="+ urlEncode(`userId=${message.user}&teamId=${message.team}&channelId=${message.channel}`);
-                
+                //+ `&state=${axosoftUrl}`+ urlEncode(`&userId=${message.user}&teamId=${message.team}&channelId=${message.channel}`);
+
                 module.exports.sendTextToSlack(slackToken, message.channel, `Yo, you are not authorized from Axosoft! <${axosoftLoginUrl}| Authorize me>` )
             }
 
