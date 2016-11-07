@@ -1,6 +1,6 @@
 const config = require('./config.json');
 const helper = require('./helper.js');
-const Botkit = require('axo-botkit');
+const Botkit = require('botkit');
 const request = require('request');
 const MongoClient = require('mongodb').MongoClient;
 const ObjectId = require('mongodb').ObjectID
