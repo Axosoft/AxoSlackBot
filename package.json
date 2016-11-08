@@ -4,7 +4,8 @@
   "description": "Slack experimental",
   "main": "axoSlackBot.js",
   "scripts": {
-    "postinstall": "node scripts/storeConfig.js",
+    "postinstall": "node js/postinstall.js",
+    "botconfig": "node scripts/storeConfig.js",
     "start": "node axoSlackBot.js"
   },
   "author": "B.Amiri",
@@ -13,6 +14,7 @@
     "botkit": "^0.4.0",
     "botkit-storage-mongo": "^1.0.4",
     "mongodb": "^2.2.10",
+    "ncp": "^2.0.0",
     "request": "^2.75.0",
     "urlencode": "^1.1.0"
   }

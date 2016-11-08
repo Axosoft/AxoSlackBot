@@ -29,3 +29,7 @@ node_modules
 
 # VS Code directory
 .vscode
+
+# config files
+config.json
+process.json

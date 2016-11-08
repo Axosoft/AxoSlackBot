@@ -4,18 +4,17 @@ var config = {};
 
 //set defaults
 config.clientId = '82854487175.85597041971';
-config.port = 4114;
-config.axosoftClientId = "d4a4d398-2578-4cc7-a1cf-1b4a02330774"
+config.port = 3004;
+config.axosoftClientId = 'd4a4d398-2578-4cc7-a1cf-1b4a02330774'
 
-if (process.env.NODE_ENV == 'development') {
-config.redirectUri = 'devslackbot.axosoft.com:4114',
-config.mongoUri = "mongodb://devslackbot.axosoft.com:27017/slackData"
+var prefix = process.env.BUILD_LIFECYCLE;
+
+if (prefix == 'production') {
+    prefix = '';
 }
 
-if (process.env.NODE_ENV == 'production') {
-config.redirectUri = 'slackbot.axosoft.com:4114',
-config.mongoUri = "mongodb://slackbot.axosoft.com:27017/slackData"
-}
+config.redirectUri = prefix + 'slackbot.axosoft.com:3004';
+config.mongoUri = 'mongodb://' + prefix + 'slackbot.axosoft.com:27017/slackData'
 
 if (process.env.AXO_slackbot_secret && process.env.AXO_slackbot_axosoft_secret) {
 console.log('updating config file...')
