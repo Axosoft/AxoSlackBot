@@ -10,6 +10,10 @@
   },
   "author": "B.Amiri",
   "license": "ISC",
+  "repository": {
+  "type": "git",
+  "url": "git://github.com/Axosoft/AxoSlackBot.git"
+  },
   "dependencies": {
     "botkit": "^0.4.0",
     "botkit-storage-mongo": "^1.0.4",
