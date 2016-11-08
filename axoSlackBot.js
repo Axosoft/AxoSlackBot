@@ -106,50 +106,27 @@ controller.on('rtm_open',function(bot) {
 
 controller.on('rtm_close',function(bot) {
   console.log('** The RTM api just closed');
-    // you may want to attempt to re-open
     // TODO reopen rtm if it's required!
-    //   bot.startRTM(function(err) {
-    //   if (!err) {
-    //     trackBot(bot);
-    //   }
+    //  bot.startRTM(function(err) {
     // });
 });
 
 controller.hears('(get my|get) (.*)(items)',['direct_message,direct_mention,mention'],function(bot,message) { 
     var channelId = message.channel;
-    helper.checkForAxosoftAccessTokenForUser(message.team, message.user)
+    helper.checkAxosoftDataForUser(message.team, message.user)
     .then(function(axosoftToken){
           var params = {
-              access_token: axosoftToken,
-              columns: "item_type,name,id,priority,due_date,workflow_step,custom_fields.custom_1",
+              access_token: axosoftToken[0],
+              columns: "description,item_type,name,id,priority,due_date,workflow_step,remaining_duration.duration_text,assigned_to,release,custom_fields.custom_1",
               page_size: 10
           };
-          if(message.match[2] == 'open ') {
-            params.filters = 'completion_date="1899-01-01"';
-          }
-          if(message.match[2] == 'closed '){
-            params.filters = 'completion_date=in[last30_days]';
-            params.sort_fields = 'completion_date DESC';
-          }
-          if(message.match[2] == 'updated '){
-            params.sort_fields = 'last_updated_date_time DESC';
-          }
-
-          //paging
-          var page = 1;
-          var pageMatches = message.text.match(/(.*)(page\s)(\d+)/i);
-
-          if (pageMatches) {
-            page = pageMatches[3];
-            params.page = page;
-          }
 
           helper.retrieveDataFromDataBase(message.team, message.user,"teams")
           .then(function(returnedData){
               var axoBaseUrl = returnedData.axosoftBaseURL;
               var slackToken = returnedData.slackAccessToken;
 
-              helper.assignAxoId(message, params, axoBaseUrl, axosoftToken)
+              helper.assignAxoId(message, params, axoBaseUrl)
               .then(function(params){
                     helper.makeRequest("GET", `${axoBaseUrl}/api/v5/features`, params, function(error, response, body){
                     if(!error && response.statusCode == 200){
@@ -174,20 +151,16 @@ controller.hears('(get my|get) (.*)(items)',['direct_message,direct_mention,ment
                         }
                         else{
                           if((params.sort_fields != undefined)&&(params.sort_fields == 'completion_date DESC')){
-                                // //eliminate items that are not closed
-                                // BODY.data = BODY.data.filter(function(val){
-                                //   return val.completion_date != null;
-                                // });
                                 if(params.page != undefined){BODY.requestedPage = pageMatches[3];}
                                 if(BODY.data.length == 0){
                                   helper.sendTextToSlack(slackToken, channelId, `I could not find any closed items on page ${page}!`)
                                 }
-                                else{
-                                  helper.sendDataToSlack(slackToken, channelId, BODY, message.match);
+                                else{ 
+                                  helper.sendDataToSlack(slackToken, channelId, BODY, axoBaseUrl, axosoftToken, message.match);
                                 }
                           }else{
                             if(params.page != undefined){BODY.requestedPage = pageMatches[3];}
-                            helper.sendDataToSlack(slackToken, channelId, BODY, message.match);
+                            helper.sendDataToSlack(slackToken, channelId, BODY, axoBaseUrl, axosoftToken[0], message.match);
                           }
                         }
                     }else{
@@ -197,7 +170,7 @@ controller.hears('(get my|get) (.*)(items)',['direct_message,direct_mention,ment
               });
           })
           .catch(function(reason){
-              /// axosoftBaseURL does not exists!
+              //axosoftBaseURL does not exists!
               console.log(reason);
           });
     })
@@ -211,15 +184,13 @@ controller.hears('(get my|get) (.*)(items)',['direct_message,direct_mention,ment
            console.log("something went wrong with building a collection for the new user in the data base!");
            //TODO not a bad idea to slack the user! 
          })
-      }else if(reason == "No axosoft Access Token"){
-         helper.authorizeUserWithoutAccessToken(bot,message);
       }else{
-        ////
+         helper.authorizeUser(bot,message);
       }
     });
 });
 
-controller.hears('(.*)(axo)(d|f|t|i|\\s)(\\s|.*)(\\d+|\\s+)(.*)',['direct_message,direct_mention,mention'],function(bot,message) { 
+controller.hears('(.*)(axo)(d|f|t|i|[]{0})(\\s|[]{0})(\\d+)(.*)',['direct_message,direct_mention,mention'],function(bot,message) { 
       var channelId = message.channel;
       var formatDueDate = function(dueDate){
           if(dueDate == null)return '';
@@ -228,7 +199,6 @@ controller.hears('(.*)(axo)(d|f|t|i|\\s)(\\s|.*)(\\d+|\\s+)(.*)',['direct_messag
 
       var formatColumns = function(itemType){
         if(itemType != "features"){
-          //return "item_type,name,id,priority,due_date,workflow_step" 
           return "description,item_type,name,id,priority,due_date,workflow_step,remaining_duration.duration_text,assigned_to,release";
         }
         else{
@@ -255,18 +225,18 @@ controller.hears('(.*)(axo)(d|f|t|i|\\s)(\\s|.*)(\\d+|\\s+)(.*)',['direct_messag
         item_type = 'incidents';
       }
 
-       helper.checkForAxosoftAccessTokenForUser(message.team, message.user)
+       helper.checkAxosoftDataForUser(message.team, message.user)
        .then(function(axosoftToken){
             helper.retrieveDataFromDataBase(message.team, message.user,"teams")
             .then(function(returnedData){
                   var axoBaseUrl = returnedData.axosoftBaseURL;
                   var slackToken = returnedData.slackAccessToken;
                   var params = {
-                    access_token: axosoftToken,
-                    filters: `id=${item_id}`,
+                    access_token: axosoftToken[0],
+                    //filters: `item_id=${item_id}`,
+                    item_id: item_id,
                     columns: formatColumns(item_type), 
-                    page_size: 10,
-                    strict_columns: true
+                    page_size: 10
                   };
 
                   helper.makeRequest("GET", `${axoBaseUrl}/api/v5/${item_type}`, params, function(error, response, body){
@@ -277,7 +247,7 @@ controller.hears('(.*)(axo)(d|f|t|i|\\s)(\\s|.*)(\\d+|\\s+)(.*)',['direct_messag
                               }
                               else{
                                   var axosoftData = {
-                                        link: `${axoBaseUrl}viewitem?id=${BODY.data[0].id}&type=${BODY.data[0].item_type}&force_use_number=true/`,
+                                        link: `${axoBaseUrl}/viewitem?id=${BODY.data[0].id}&type=${BODY.data[0].item_type}&force_use_number=true/`,
                                         axosoftItemName: BODY.data[0].name,
                                         Parent: helper.checkForProperty(BODY.data[0], "parent.id"),
                                         Project: helper.checkForProperty(BODY.data[0], "project.name"),
@@ -306,7 +276,10 @@ controller.hears('(.*)(axo)(d|f|t|i|\\s)(\\s|.*)(\\d+|\\s+)(.*)',['direct_messag
                                   };
                                   helper.makeRequest("GET","https://slack.com/api/chat.postMessage", params, function(err, response, body){});
                               }
-                    }else{
+                    }else if(response.statusCode == 500){
+                      helper.sendTextToSlack(slackToken, channelId, `I could not find any \`${item_type}\` in Axosoft with \`id = ${item_id}\`!`);
+                    }
+                    else{
                       helper.sendTextToSlack(slackToken, channelId,"I could not connect to axosoft!");
                     }
                   });
@@ -322,41 +295,13 @@ controller.hears('(.*)(axo)(d|f|t|i|\\s)(\\s|.*)(\\d+|\\s+)(.*)',['direct_messag
               .then(function(val){
                 helper.authorizeUserwithoutCollection(bot, message);
               }).catch(function(reason){
+                //TODO not a bad idea to slack user! 
                 console.log("something went wrong with building a collection for the new user in the data base!");
-                //TODO not a bad idea to slack the user! 
               })
-            }else if(reason == "No axosoft Access Token"){
-              helper.authorizeUserWithoutAccessToken(bot,message);
             }else{
-              ////
+              helper.authorizeUser(bot, message);
             }
        });
-});
-
-controller.hears('hello','direct_message',function(bot,message) {
-  bot.reply(message,'Hello!');
-});
-
-controller.hears('^stop','direct_message',function(bot,message) {
-  bot.reply(message,'Goodbye');
-  bot.rtm.close();
-});
-
-controller.hears(['gimme'],['direct_message,direct_mention,mention,ambient'], function(bot, message){
-    bot.sendWebhook({
-        text: "I am a test message from <https://www.axosoft.com/|Take me to Axosoft>",
-        attachments:[{
-              fallback:"New open task one",
-              pretext:"New open task two",
-              color:"#D00000",
-              fields: [{
-                  title:"This is just test ",
-                  value:"This is much easier than I thought it would be.",
-                  short:false
-              }]
-        }]
-
-    });
 });
 
 controller.hears(['identify yourself', 'who are you', 'who are you?', 'what is your name'],['direct_message,direct_mention,mention,ambient'], function(bot, message){

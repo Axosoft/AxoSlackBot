@@ -40,20 +40,74 @@ formatText: function(body, message){
                 };
 },
 
-sendDataToSlack: function(slackAccessToken, channelId, body, message){
-                  var attachmentArrays = [];
-                  var itemType, axosoftData;
-                  var formatDueDate = function(dueDate){
-                          if(dueDate == null)return '';
-                          else{
-                             return '\`Due: ' + module.exports.timeFormat(dueDate) + '\`';
-                          }
-                  };
-               
+sendDataToSlack: function(slackAccessToken, channelId, body, axoBaseUrl, axosoftToken, message){
+                  var pageNumber = Math.ceil((body.metadata.total_count/body.metadata.page_size));
+                  var params; 
                   var formatWorkItemType = function(workItemType){
                     if(workItemType == null)return '';
                     else{
                       return `\n *Work Item Type:* ${axosoftData.workItemType}`;
+                    }
+                  };
+
+                  module.exports.attachmentMaker(body, axoBaseUrl, axosoftToken)
+                  .then(function(attach){
+                       params = {
+                              token: slackAccessToken,
+                              channel:channelId,
+                              mrkdwn: true,
+                              text: module.exports.formatText(body, message),
+                              attachments: JSON.stringify(attach) 
+                        };
+                        module.exports.makeRequest("GET","https://slack.com/api/chat.postMessage", params, function(err, response, body){});
+                  }).catch(function(reason){
+                      console.log(reason);
+                  });
+              },
+
+attachmentMaker: function (Body, axoBaseUrl, axosoftToken){
+        return new Promise(function(resolve, reject){
+              var attachmentArrays = [];
+              var parentIds = [];
+              var itemType, axosoftData;
+
+              var formatDueDate = function(data){
+                      if((data.percent_complete != "100") && (data.due_date != null)){
+                        return '\`Due: ' + module.exports.timeFormat(data.due_date) + '\`';
+                      }else{
+                        return "";
+                      }
+              };
+
+              for (x = 0; x < Body.data.length; x++) {
+                  axosoftData = {
+                      link: `${axoBaseUrl}/viewitem?id=${Body.data[x].id}&type=${Body.data[x].item_type}&force_use_number=true/`,
+                      assignedTo: (function(){
+                        if(Body.data[x].assigned_to.name != ""){
+                          return Body.data[x].assigned_to.name;
+                        }else{
+                          return "[None]";
+                        }
+                      }).call(),
+                      parent: Body.data[x].parent.id,
+                      axosoftItemName: Body.data[x].name,
+                      workFlowStep: Body.data[x].workflow_step.name,
+                      axosoftId: Body.data[x].number, 
+                      itemType: Body.data[x].item_type,
+                      workItemType: (function(){
+                        if(Body.data[x].hasOwnProperty("custom_fields")){
+                          return Body.data[x].custom_fields.custom_1;
+                        }else{
+                          return "[None]";
+                        }
+                      }).call()
+                  };
+
+                  const extraPromises = [];
+                  const itemsWithParent = [];
+                  if (axosoftData.parent > 0) {
+                    if((parentIds.indexOf(Body.data[x].parent.id) == -1)){
+                        parentIds.push(Body.data[x].parent.id);
                     }
                     itemsWithParent.push(Body.data[x]);
                   }else{
@@ -74,13 +128,28 @@ sendDataToSlack: function(slackAccessToken, channelId, body, message){
                   }
             }
 
-                  for (x = 0; x < body.data.length; x++) {
-                        axosoftData = {
-                            link: `http://localhost/OnTimeWeb/viewitem?id=${body.data[x].id}&type=${body.data[x].item_type}&force_use_number=true/`,
-                            axosoftItemName: body.data[x].name,
-                            workFlowStep: body.data[x].workflow_step.name,
-                            axosoftId: body.data[x].id, 
-                            //itemType: body.data[x].item_type,
+            extraPromises.push(
+                  module.exports.getParentName(parentIds, axoBaseUrl, axosoftToken)
+                  .then(function(parentDictionary){
+                      for(z=0; z < itemsWithParent.length; z++){
+                        itemsWithParent[z].parent_name = parentDictionary[itemsWithParent[z].parent.id];
+                        itemsWithParent[z].parent_link = `${axoBaseUrl}/viewitem?id=${itemsWithParent[z].parent.id}&type=${itemsWithParent[z].item_type}&force_use_number=true/`;
+                        var data = {
+                            link: `${axoBaseUrl}/viewitem?id=${itemsWithParent[z].id}&type=${itemsWithParent[z].item_type}&force_use_number=true/`,
+                            parentLink: itemsWithParent[z].parent_link,
+                            assignedTo: (function(){
+                              if(itemsWithParent[z].assigned_to.name != ""){
+                                return itemsWithParent[z].assigned_to.name;
+                              }else{
+                                return "[None]";
+                              }
+                            }).call(),
+                            parent: itemsWithParent[z].parent.id,
+                            parentName: itemsWithParent[z].parent_name,
+                            axosoftItemName: itemsWithParent[z].name,
+                            workFlowStep: itemsWithParent[z].workflow_step.name,
+                            axosoftId: itemsWithParent[z].number, 
+                            itemType: itemsWithParent[z].item_type,
                             workItemType: (function(){
                               if(itemsWithParent[z].hasOwnProperty("custom_fields")){
                                 return itemsWithParent[z].custom_fields.custom_1;
@@ -91,42 +160,43 @@ sendDataToSlack: function(slackAccessToken, channelId, body, message){
                            
                         };
 
-                        if(body.data[x].completion_date != null){
-                              axosoftData.completionDate = body.data[x].completion_date;
-                              attachmentArrays.push({
-                                color: "#36a64f",
-                                text: `<${axosoftData.link}| ${axosoftData.axosoftId}>  ${formatWorkItemType(axosoftData.workItemType)} \`${axosoftData.workFlowStep}\` ${axosoftData.axosoftItemName} ${'\`Completion Date: ' + module.exports.timeFormat(axosoftData.completionDate) + '\`'}`,
-                                mrkdwn_in:["text"]
-                              });
-                        }else if(body.data[x].due_date != null) {
-                            axosoftData.dueDate = body.data[x].due_date;
-                            attachmentArrays.push({
-                              color: "#36a64f",
-                              text: `<${axosoftData.link}|${axosoftData.axosoftId}>  ${formatWorkItemType(axosoftData.workItemType)} \`${axosoftData.workFlowStep}\` ${axosoftData.axosoftItemName} ${formatDueDate(axosoftData.dueDate)}`,
-                              mrkdwn_in:["text"]
-                            });
+                        attachmentArrays.push({
+                          color: "#FF8000",
+                          text: `<${data.link}| ${itemsWithParent[z].id}> ${data.workItemType} *${data.axosoftItemName}* \nParent ${data.parent}: <${data.parentLink}| ${data.parentName}>`,
+                          mrkdwn_in:["text"]
+                        });
+                      }
+                      resolve(attachmentArrays);
+                  })
+                  .catch(function(reason){
+                    console.log(reason);
+                  })
+            );
+        });
+      },
+
+getParentName: function(parentIds, axoBaseUrl, axosoftToken){
+                  var parentDictionary = {}; 
+                  return new Promise(function(resolve, reject){
+                      var params = {
+                        access_token: axosoftToken,
+                        //filters: `id=[${parentId}]`,
+                        filters: `id=in[${parentIds}]`,
+                        columns: "name",
+                      };
+                      module.exports.makeRequest("GET", `${axoBaseUrl}/api/v5/features`, params, function(error, response, body){
+                        if(!error && response.statusCode == 200){
+                            var BODY = JSON.parse(body);
+                            if(BODY.data.length != 0){
+                              for(x=0; x<BODY.data.length; x++){
+                                parentDictionary[BODY.data[x].id] = BODY.data[x].name;
+                              }
+                              resolve(parentDictionary);
+                            }
                         }
-                  }
-
-                  var params = {
-                        token: slackAccessToken,
-                        channel:channelId,
-                        mrkdwn: true,
-                        text: module.exports.formatText(body, message),
-                        attachments: JSON.stringify(attachmentArrays) 
-                  };
-                  module.exports.makeRequest("GET","https://slack.com/api/chat.postMessage", params, function(err, response, body){
-                    if(err)console.log(err);
+                      })
                   });
-              },
-
-//             attachmentArrays.push({
-//                color: "#FF8000",
-//                text: `<${`${axoBaseUrl}viewitem?id=${Body.data[x].id}&type=${Body.data[x].item_type}&force_use_number=true/`}| Axo${axosoftData.itemType.substring(0,1)}:${axosoftData.axosoftId}> ${axosoftData.workItemType}  *${axosoftData.axosoftItemName}* \n ${axosoftData.assignedTo}  \`${axosoftData.workFlowStep}\` ${formatDueDate(Body.data[x])}`,
-//                mrkdwn_in:["text"]
-//             });
-//           }
-// },
+},
 
 timeFormat: function(input){
               var parts = input.match(/(\d+)/g);
@@ -197,10 +267,10 @@ getUserEmailAddressFromSlack: function(slackUserId, slackAccessToken){
                                   });
                               },
 
-assignAxoId: function(message, params, axoBaseUrl, axosoftToken){
+assignAxoId: function(message, params, axoBaseUrl){
                 return new Promise(function(resolve, reject){
                 if(message.match[1] == 'get my') {
-                   module.exports.getUserIdAxosoft(axoBaseUrl, axosoftToken)
+                   module.exports.getUserIdAxosoft(axoBaseUrl, params.access_token)
                    .then(function(axosoftUserId){
                      params.filters = `assigned_to.id=${axosoftUserId}`;
                      resolve(params);
@@ -264,8 +334,8 @@ saveAxosoftUrl: function(data, baseUrl) {
                   });
 },
 
-checkForAxosoftAccessTokenForUser: function(slackTeamId, slackUserId){
-                                return new Promise(function(resolve, reject){
+checkAxosoftDataForUser: function(slackTeamId, slackUserId){
+                                var one = new Promise(function(resolve, reject){
                                     MongoClient.connect(config.mongoUri, function(err, database){
                                           if(err) {
                                             console.log(err);
@@ -289,6 +359,33 @@ checkForAxosoftAccessTokenForUser: function(slackTeamId, slackUserId){
                                           }
                                     });
                                 });
+
+                                var two = new Promise(function(resolve, reject){
+                                    MongoClient.connect(config.mongoUri, function(err, database){
+                                          if(err) {
+                                            console.log(err);
+                                          }else{
+                                              database.collection('teams').find({"id":slackTeamId}).toArray(function(err, results){
+                                                  if(err){
+                                                    console.log(err);
+                                                    reject("Not able to connect to the data base");
+                                                  }
+                                                  else{
+                                                      if(results[0] === undefined){
+                                                         console.log("There is no team with the speciftied id in our data base!");
+                                                         reject("No team");
+                                                      }else if(results[0].axosoftBaseURL == undefined){
+                                                         reject("No axosoft base url")
+                                                      }else{
+                                                         resolve(results[0].axosoftBaseURL);
+                                                      }
+                                                  }
+                                            });
+                                          }
+                                    });
+                                });
+
+                                return Promise.all([one, two]);
 },
 
 checkForProperty: function(object, propertyName){
@@ -324,7 +421,6 @@ checkForProperty: function(object, propertyName){
                             }else if(propertyName == "assigned_to"){
                               if(((object[propertyName])["name"] == "") || ((object[propertyName])["name"] == null)){
                                 return null;
-                                //return "[None]";
                               }else{
                                 return (object[propertyName])["name"];
                               }
@@ -377,10 +473,10 @@ retrieveDataFromDataBase: function(slackTeamId, slackUserId, documentName){
                                                     console.log("There is no team with the speciftied id in our data base!");
                                                     reject("There is no team with the speciftied id in our data base!");
                                                 }else{
-                                                  resolve({
-                                                      axosoftBaseURL: results[0].axosoftBaseURL,
-                                                      slackAccessToken: results[0].token
-                                                  });
+                                                      resolve({
+                                                          axosoftBaseURL: results[0].axosoftBaseURL,
+                                                          slackAccessToken: results[0].token
+                                                      });
                                                 }
                                             }
                                        });
@@ -405,7 +501,7 @@ createNewCollection: function(message){
 },
 
 formatAxosoftBaseUrl: function(url){
-                          if((url.indexOf("http://") == -1) || (url.indexOf("https://")) == -1){
+                          if(url.indexOf("http") == -1){
                             return url = "http://"+url;
                           }
                           else{
@@ -413,13 +509,12 @@ formatAxosoftBaseUrl: function(url){
                           }
 },
 
-authorizeUserWithoutAccessToken:function(bot, message){
+authorizeUser:function(bot, message){
         module.exports.retrieveDataFromDataBase(message.team, message.user,"teams")
           .then(function(returnedData){
             if (returnedData.axosoftBaseURL == undefined) {
                 module.exports.authorizeUserwithoutCollection(bot, message);
             }else {
-                //axosoftBaseURL exists in database!
                 var slackToken = returnedData.slackAccessToken;
                 var axosoftUrl = returnedData.axosoftBaseURL;
                 var axosoftLoginUrl = axosoftUrl 
@@ -429,116 +524,66 @@ authorizeUserWithoutAccessToken:function(bot, message){
                 + '&scope=read write'
                 + '&expiring=false'
                 + "&state="+ urlEncode(`userId=${message.user}&teamId=${message.team}&channelId=${message.channel}`);
-                //+ `&state=${axosoftUrl}`+ urlEncode(`&userId=${message.user}&teamId=${message.team}&channelId=${message.channel}`);
 
                 module.exports.sendTextToSlack(slackToken, message.channel, `Yo, you are not authorized from Axosoft! <${axosoftLoginUrl}| Authorize me>` )
             }
-
           }).catch(function(reason){
              console.log(reason);
              module.exports.sendTextToSlack(slackToken, message.channel,"I could not find the required data in database to get data from axosoft!");
           })
 },
 
-authorizeUserwithoutCollection:function(bot, message){
+authorizeUserwithoutCollection:function(bot, message, returnedData){
                   var saveAxoBaseUrl = false;
                   module.exports.retrieveDataFromDataBase(message.team, message.user,"teams")
                   .then(function(returnedData){
-                    if(returnedData.axosoftBaseURL == undefined){
-                      saveAxoBaseUrl = true;
-                    }
-                    bot.startConversation(message, function(err, convo) {
-                        convo.ask("what's your base URL holmes? i.e. https://example.axosoft.com", function(response, convo) {
-                        var baseUrl = module.exports.formatAxosoftBaseUrl(response.text.replace(/[<>]/g, ''));
-                        module.exports.makeRequest('GET', baseUrl + '/api/version', {}, function(error, response, body){
-                          if(!error && response.statusCode == 200){
-                            var Body = JSON.parse(body);
-                            if(Body.data.hasOwnProperty("revision") && Body.data.revision >= 11218){
-                              var axosoftLoginUrl = baseUrl 
-                              + '/auth?response_type=code'
-                              + '&client_id='+ config.axosoftClientId
-                              + '&redirect_uri=' + config.redirectUri + "authorizationCode" 
-                              + '&scope=read write'
-                              + '&expiring=false'
-                              + "&state="+ urlEncode(`userId=${message.user}&teamId=${message.team}&channelId=${message.channel}`);
+                      if(returnedData.axosoftBaseURL == undefined){
+                        saveAxoBaseUrl = true;
+                      }
+                      bot.startConversation(message, function(err, convo) {
+                          convo.ask("what's your base URL holmes? i.e. https://example.axosoft.com", function(response, convo) {
+                          var baseUrl = module.exports.formatAxosoftBaseUrl(response.text.replace(/[<>]/g, ''));
+                          module.exports.makeRequest('GET', baseUrl + '/api/version', {}, function(error, response, body){
+                            if(!error && response.statusCode == 200){
+                              var Body = JSON.parse(body);
+                              if(Body.data.hasOwnProperty("revision") && Body.data.revision >= 11218){
+                                var axosoftLoginUrl = baseUrl 
+                                + '/auth?response_type=code'
+                                + '&client_id='+ config.axosoftClientId
+                                + '&redirect_uri=' + config.redirectUri + "authorizationCode" 
+                                + '&scope=read write'
+                                + '&expiring=false'
+                                + "&state="+ urlEncode(`userId=${message.user}&teamId=${message.team}&channelId=${message.channel}`);
 
-                              if(saveAxoBaseUrl){
-                                module.exports.saveAxosoftUrl(message, baseUrl);
+                                if(saveAxoBaseUrl){
+                                  module.exports.saveAxosoftUrl(message, baseUrl);
+                                }
+                                convo.stop();
+                                module.exports.retrieveDataFromDataBase(message.team, message.user,"teams")
+                                  .then(function(returnedDataFromDb){
+                                    var slackToken = returnedDataFromDb.slackAccessToken;
+                                    module.exports.sendTextToSlack(slackToken, message.channel, `Yo, you are not authorized from Axosoft! <${axosoftLoginUrl}|Authorize me>`);
+                                  })
+                                  .catch(function(reason){
+                                    // can not get slackToken from DB . TODO figure out a handler here 
+                                  })
                               }
-                              convo.stop();
-                              module.exports.retrieveDataFromDataBase(message.team, message.user,"teams")
-                                .then(function(returnedDataFromDb){
-                                  var slackToken = returnedDataFromDb.slackAccessToken;
-                                  module.exports.sendTextToSlack(slackToken, message.channel, `Yo, you are not authorized from Axosoft! <${axosoftLoginUrl}|Authorize me>`);
-                                })
-                                .catch(function(reason){
-                                  // can not get slackToken from DB . TODO figure out a handler here 
-                                })
-                            }
-                            else{
-                              convo.say("Please upgrade to Axosoft 17 or later");
+                              else{
+                                convo.say("Please upgrade to Axosoft 17 or later");
+                                convo.next();
+                              }
+                            }else{
+                              convo.say("Not a valid Axosoft URL");
                               convo.next();
                             }
-                          }else{
-                            convo.say("Not a valid Axosoft URL");
-                            convo.next();
-                          }
-                        });
-                        });
-                    });
-                  })
+                          });
+                          });
+                      });
+                 })
                   .catch(function(reason){
                      console.log(reason);
                   });
-}
-
-
-};
-
-                        if(propertyName.includes(".")){
-                            var afterDotPropertyName = propertyName.substr(propertyName.indexOf('.') + 1);
-                            var beforeDotPropertyName = propertyName.substr(0, propertyName.indexOf('.'));
-
-                            if(!object.hasOwnProperty(beforeDotPropertyName)){
-                              return null;
-                            }
-
-                            if((object[beforeDotPropertyName])[afterDotPropertyName] == null || (object[beforeDotPropertyName])[afterDotPropertyName] == ""){
-                              return null;
-                            }
-                            else{
-                              return (object[beforeDotPropertyName])[afterDotPropertyName];
-                            }
-                        }
-                        else{
-                          if(!object.hasOwnProperty(propertyName)){
-                              return null;
-                            }else if(propertyName == "description"){
-                              if(object[propertyName] == ""){
-                                return null;
-                              }else{
-                                return striptags(object[propertyName]);
-                              }
-                            }else if(propertyName == "assigned_to"){
-                              if(((object[propertyName])["name"] == "") || ((object[propertyName])["name"] == null)){
-                                return null;
-                                //return "[None]";
-                              }else{
-                                return (object[propertyName])["name"];
-                              }
-                            }
-                            else if(propertyName == "due_date"){
-                              if((object[propertyName] == "") || (object[propertyName] == null)){
-                                return null;
-                              }else{
-                                return formatDueDate(object[propertyName]);
-                              }
-                            }
-                            else{
-                              return object[propertyName];
-                            }
-                        }
-                    },
+},
 
 replaceAll: function(find, replacement, value){
                 var re = new RegExp(find, 'g');
@@ -611,7 +656,6 @@ paramsBuilder: function(axosoftUrl, axosoftToken, slackToken, message){
                   return new Promise(function(resolve, reject){
                       var params = {
                         access_token: axosoftToken,
-                        //columns: "item_type,name,id,priority,due_date,workflow_step,custom_fields.custom_1",
                         columns: "name,id,item_type,priority,due_date,workflow_step,description,remaining_duration.duration_text,assigned_to,release,percent_complete,custom_fields.custom_1",
                         page_size: 10
                       };
@@ -638,7 +682,6 @@ paramsBuilder: function(axosoftUrl, axosoftToken, slackToken, message){
                                 params.filters = `assigned_to.id=${userIdAxo}`;
                                 return resolve(params)
                             }).catch(function(reason){
-                                  //module.exports.sendTextToSlack(slackToken, channelId, `I could not find a user with \`${reason}\` email address in axosoft!`);
                                   return reject(reason);
                             })
                       }
