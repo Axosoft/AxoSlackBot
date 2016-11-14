@@ -28,33 +28,26 @@ sendTextToSlack: function(slackToken, channelId, txt){
 formatText: function(body, message){
                 var pageNumber = Math.ceil((body.metadata.total_count/body.metadata.page_size));
                 var txt = "Here are";
-                if(message.input.includes("my")){
+                if(message.text.includes("my")){
                   txt = txt + " your";
                 }
-                if(body.requestedPage != undefined){
-                  return `${txt} ${message[2]} items (page ${body.requestedPage} of ${pageNumber})`;
+
+                if(message.text.match('(.*)(page)(\\s)(\\d+)(.*)') != null){
+                  return `${txt} items ${message.text.match('(.*)(page)(\\s)(\\d+)(.*)')[4]} of ${pageNumber}`;
                 }else if(pageNumber>1){
-                  return `${txt} ${message[2]} items page 1 of ${pageNumber}`
+                  return `${txt} items page 1 of ${pageNumber}`
                 }else{
-                  return `${txt} ${message[2]} items`
+                  return `${txt} items`
                 };
 },
 
-sendDataToSlack: function(slackAccessToken, channelId, body, axoBaseUrl, axosoftToken, message){
+sendDataToSlack: function(slackAccessToken, message, body, axoBaseUrl, axosoftToken){
                   var pageNumber = Math.ceil((body.metadata.total_count/body.metadata.page_size));
-                  var params; 
-                  var formatWorkItemType = function(workItemType){
-                    if(workItemType == null)return '';
-                    else{
-                      return `\n *Work Item Type:* ${axosoftData.workItemType}`;
-                    }
-                  };
-
                   module.exports.attachmentMaker(body, axoBaseUrl, axosoftToken)
                   .then(function(attach){
-                       params = {
+                        var params = {
                               token: slackAccessToken,
-                              channel:channelId,
+                              channel: message.channel,
                               mrkdwn: true,
                               text: module.exports.formatText(body, message),
                               attachments: JSON.stringify(attach) 
@@ -74,6 +67,14 @@ attachmentMaker: function (Body, axoBaseUrl, axosoftToken){
               var formatDueDate = function(data){
                       if((data.percent_complete != "100") && (data.due_date != null)){
                         return '\`Due: ' + module.exports.timeFormat(data.due_date) + '\`';
+                      }else{
+                        return "";
+                      }
+              };
+
+              var formatCompletionDate = function(data){
+                      if(data != null){
+                        return '\`Closed: ' + module.exports.timeFormat(data) + '\`';
                       }else{
                         return "";
                       }
@@ -111,20 +112,20 @@ attachmentMaker: function (Body, axoBaseUrl, axosoftToken){
                     }
                     itemsWithParent.push(Body.data[x]);
                   }else{
-                     if(Body.data[x].hasOwnProperty("completion_date")){
-                          axosoftData.completionDate = Body.data[x].completion_date;
-                          attachmentArrays.push({
-                            color: "#FF8000",
-                            text: `<${axosoftData.link}| ${axosoftData.axosoftId}> ${axosoftData.workItemType}  *${axosoftData.axosoftItemName}* \n ${axosoftData.assignedTo}  \`${axosoftData.workFlowStep}\` ${'\`Closed: ' + module.exports.timeFormat(axosoftData.completionDate) + '\`'}`,
-                            mrkdwn_in:["text"]
-                          });
-                      }else{
-                          attachmentArrays.push({
-                            color: "#FF8000",
-                            text: `<${axosoftData.link}| ${axosoftData.axosoftId}> ${axosoftData.workItemType}  *${axosoftData.axosoftItemName}* \n ${axosoftData.assignedTo}  \`${axosoftData.workFlowStep}\` ${formatDueDate(Body.data[x])}`,
-                            mrkdwn_in:["text"]
-                          });
-                      }
+                    if(Body.data[x].hasOwnProperty("completion_date")){
+                        axosoftData.completionDate = Body.data[x].completion_date;
+                        attachmentArrays.push({
+                          color: "#FF8000",
+                          text: `<${axosoftData.link}| ${axosoftData.axosoftId}> ${axosoftData.workItemType}  *${axosoftData.axosoftItemName}* \n ${axosoftData.assignedTo}  \`${axosoftData.workFlowStep}\` ${formatCompletionDate(axosoftData.completionDate)}`,
+                          mrkdwn_in:["text"]
+                        });
+                    }else{
+                        attachmentArrays.push({
+                          color: "#FF8000",
+                          text: `<${axosoftData.link}| ${axosoftData.axosoftId}> ${axosoftData.workItemType}  *${axosoftData.axosoftItemName}* \n ${axosoftData.assignedTo}  \`${axosoftData.workFlowStep}\` ${formatDueDate(Body.data[x])}`,
+                          mrkdwn_in:["text"]
+                        });
+                    }
                   }
             }
 
@@ -157,14 +158,22 @@ attachmentMaker: function (Body, axoBaseUrl, axosoftToken){
                                 return "[None]";
                               }
                             }).call()
-                           
                         };
 
-                        attachmentArrays.push({
-                          color: "#FF8000",
-                          text: `<${data.link}| ${itemsWithParent[z].id}> ${data.workItemType} *${data.axosoftItemName}* \nParent ${data.parent}: <${data.parentLink}| ${data.parentName}>`,
-                          mrkdwn_in:["text"]
-                        });
+                        if(itemsWithParent[z].hasOwnProperty("completion_date")){
+                            data.completionDate = itemsWithParent[z].completion_date;
+                            attachmentArrays.push({
+                              color: "#FF8000",
+                              text: `<${data.link}| ${data.axosoftId}> ${data.workItemType}  *${data.axosoftItemName}* \n ${data.assignedTo}  \`${data.workFlowStep}\` ${formatCompletionDate(data.completionDate)} \nParent ${data.parent}: <${data.parentLink}| ${data.parentName}>`,
+                              mrkdwn_in:["text"]
+                            });
+                        }else{
+                            attachmentArrays.push({
+                              color: "#FF8000",
+                              text: `<${data.link}| ${data.axosoftId}> ${data.workItemType}  *${data.axosoftItemName}* \n ${data.assignedTo}  \`${data.workFlowStep}\` ${formatDueDate(itemsWithParent[z])} \nParent ${data.parent}: <${data.parentLink}| ${data.parentName}>`,
+                              mrkdwn_in:["text"]
+                            });
+                        }
                       }
                       resolve(attachmentArrays);
                   })
@@ -180,7 +189,6 @@ getParentName: function(parentIds, axoBaseUrl, axosoftToken){
                   return new Promise(function(resolve, reject){
                       var params = {
                         access_token: axosoftToken,
-                        //filters: `id=[${parentId}]`,
                         filters: `id=in[${parentIds}]`,
                         columns: "name",
                       };
@@ -670,17 +678,17 @@ paramsBuilder: function(axosoftUrl, axosoftToken, slackToken, message){
                       if(message.match[2] == 'open '){
                         params.filters = 'completion_date="1899-01-01"';
                       }
-                      if(message.match[2] == 'closed '){
+                      else if(message.match[2] == 'closed '){
                         params.sort_fields = 'completion_date DESC';
                       }
-                      if(message.match[2] == 'updated '){
+                      else if(message.match[2] == 'updated '){
                         params.sort_fields = 'last_updated_date_time DESC';
                       }
                       if(message.match[1] == 'get my'){
                           module.exports.getUserIdAxosoft(axosoftUrl, axosoftToken, slackToken, message)
                             .then(function(userIdAxo){
                                 params.filters = `assigned_to.id=${userIdAxo}`;
-                                return resolve(params)
+                                return resolve(params);
                             }).catch(function(reason){
                                   return reject(reason);
                             })

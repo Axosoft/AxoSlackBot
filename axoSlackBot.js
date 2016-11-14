@@ -111,64 +111,52 @@ controller.on('rtm_close',function(bot) {
     // });
 });
 
-controller.hears('(get my|get) (.*)(items)',['direct_message,direct_mention,mention'],function(bot,message) { 
+controller.hears('(get my|get) (.*)(items)(.*)',['direct_message,direct_mention,mention'],function(bot,message){
     var channelId = message.channel;
     helper.checkAxosoftDataForUser(message.team, message.user)
-    .then(function(axosoftToken){
-          var params = {
-              access_token: axosoftToken[0],
-              columns: "description,item_type,name,id,priority,due_date,workflow_step,remaining_duration.duration_text,assigned_to,release,custom_fields.custom_1",
-              page_size: 10
-          };
+    .then(function(userData){
+          var params = {};
+          if(message.text.includes("page")){
+             params.page = message.text.match('(.*)(page)(\\s)(\\d+)(.*)')[4];
+          }
 
           helper.retrieveDataFromDataBase(message.team, message.user,"teams")
           .then(function(returnedData){
               var axoBaseUrl = returnedData.axosoftBaseURL;
               var slackToken = returnedData.slackAccessToken;
 
-              helper.assignAxoId(message, params, axoBaseUrl)
+              helper.paramsBuilder(axoBaseUrl, userData[0], slackToken, message)
               .then(function(params){
-                    helper.makeRequest("GET", `${axoBaseUrl}/api/v5/features`, params, function(error, response, body){
-                    if(!error && response.statusCode == 200){
-                        var BODY = JSON.parse(body);
-                        if(BODY.data.length == 0){
-                          var requestKeyWord = function(msg){
-                            if(msg != ""){
-                              return msg;
-                            }else{
-                              return "";
-                            }
-                          }
-                          if(message.text.includes("page")){
-                              helper.sendTextToSlack(slackToken, channelId, `I could not find any ${requestKeyWord(message.match[2])} items on page ${page}!`)
-                          }
-                          else if(params.filters.includes("assigned_to")){
-                              helper.sendTextToSlack(slackToken, channelId, `I could not find any ${requestKeyWord(message.match[2])} items assigned to you in Axosoft!`)
-                          }
-                          else{
-                              helper.sendTextToSlack(slackToken, channelId, `I could not find any ${requestKeyWord(message.match[2])} items that you are!`);
-                          }
-                        }
-                        else{
-                          if((params.sort_fields != undefined)&&(params.sort_fields == 'completion_date DESC')){
-                                if(params.page != undefined){BODY.requestedPage = pageMatches[3];}
-                                if(BODY.data.length == 0){
-                                  helper.sendTextToSlack(slackToken, channelId, `I could not find any closed items on page ${page}!`)
-                                }
-                                else{ 
-                                  helper.sendDataToSlack(slackToken, channelId, BODY, axoBaseUrl, axosoftToken, message.match);
-                                }
+                  helper.makeRequest("GET", `${axoBaseUrl}/api/v5/features`, params, function(error, response, body){
+                  if(!error && response.statusCode == 200){
+                      var BODY = JSON.parse(body);
+                      if(BODY.data.length == 0){
+                        var requestKeyWord = function(msg){
+                          if(msg != ""){
+                            return msg;
                           }else{
-                            if(params.page != undefined){BODY.requestedPage = pageMatches[3];}
-                            helper.sendDataToSlack(slackToken, channelId, BODY, axoBaseUrl, axosoftToken[0], message.match);
+                            return "";
                           }
                         }
-                    }else{
-                      helper.sendTextToSlack(slackToken, channelId,"I could not connect to axosoft");
-                    }
-                  });
-              });
-          })
+                        if(params.hasOwnProperty("filters")){
+                            helper.sendTextToSlack(slackToken, channelId, `I could not find any ${requestKeyWord(message.match[2])} ${requestKeyWord(message.match[3])} assigned to you on page \`${params.page}\` in Axosoft!`)
+                        }else if(message.text.includes("page")){
+                            helper.sendTextToSlack(slackToken, channelId, `I could not find any ${requestKeyWord(message.match[2])} ${requestKeyWord(message.match[3])} on page \`${params.page}\`!`)
+                        }else{
+                            helper.sendTextToSlack(slackToken, channelId, `I could not find any ${requestKeyWord(message.match[2])} ${requestKeyWord(message.match[3])} that you are lookin' for!`);
+                        }
+                      }else{
+                        helper.sendDataToSlack(slackToken, message, BODY, axoBaseUrl, userData[0]);
+                      }
+                  }else{
+                    helper.sendTextToSlack(slackToken, channelId,"I could not connect to axosoft");
+                  }
+                });
+             })
+             .catch(function(reason){
+               console.log(reason);
+             });
+            })
           .catch(function(reason){
               //axosoftBaseURL does not exists!
               console.log(reason);
@@ -233,7 +221,6 @@ controller.hears('(.*)(axo)(d|f|t|i|[]{0})(\\s|[]{0})(\\d+)(.*)',['direct_messag
                   var slackToken = returnedData.slackAccessToken;
                   var params = {
                     access_token: axosoftToken[0],
-                    //filters: `item_id=${item_id}`,
                     item_id: item_id,
                     columns: formatColumns(item_type), 
                     page_size: 10
