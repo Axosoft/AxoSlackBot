@@ -139,9 +139,13 @@ controller.hears('(get my|get) (.*)(items)(.*)',['direct_message,direct_mention,
                           }
                         }
                         if(params.hasOwnProperty("filters")){
-                            helper.sendTextToSlack(slackToken, channelId, `I could not find any ${requestKeyWord(message.match[2])} ${requestKeyWord(message.match[3])} assigned to you on page \`${params.page}\` in Axosoft!`)
+                          if(message.text.includes("page")){
+                            helper.sendTextToSlack(slackToken, channelId, `I could not find any ${requestKeyWord(message.match[2])} ${requestKeyWord(message.match[3])} assigned to you on page \`${params.page}\` in Axosoft!`);
+                          }else{
+                            helper.sendTextToSlack(slackToken, channelId, `I could not find any ${requestKeyWord(message.match[2])} ${requestKeyWord(message.match[3])} assigned to you in Axosoft!`);
+                          }
                         }else if(message.text.includes("page")){
-                            helper.sendTextToSlack(slackToken, channelId, `I could not find any ${requestKeyWord(message.match[2])} ${requestKeyWord(message.match[3])} on page \`${params.page}\`!`)
+                            helper.sendTextToSlack(slackToken, channelId, `I could not find any ${requestKeyWord(message.match[2])} ${requestKeyWord(message.match[3])} on page \`${params.page}\`!`);
                         }else{
                             helper.sendTextToSlack(slackToken, channelId, `I could not find any ${requestKeyWord(message.match[2])} ${requestKeyWord(message.match[3])} that you are lookin' for!`);
                         }
