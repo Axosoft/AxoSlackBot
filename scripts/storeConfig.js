@@ -3,9 +3,9 @@ var fs = require('fs')
 var config = {};
 
 //set defaults
-config.clientId = '82854487175.85597041971';
+config.clientId = '2574228432.104777884963';
 config.port = 3004;
-config.axosoftClientId = 'd4a4d398-2578-4cc7-a1cf-1b4a02330774'
+config.axosoftClientId = '4b62de06-1f39-41f7-ae38-37ec5262478a'
 
 var prefix = process.env.BUILD_LIFECYCLE;
 
