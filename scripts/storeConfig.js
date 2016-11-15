@@ -14,7 +14,7 @@ if (prefix == 'production') {
 }
 
 config.redirectUri = prefix + 'slackbot.axosoft.com:3004';
-config.mongoUri = 'mongodb://' + prefix + 'slackbot.axosoft.com:27017/slackData'
+config.mongoUri = 'mongodb://localhost:27017/slackData'
 
 if (process.env.AXO_slackbot_secret && process.env.AXO_slackbot_axosoft_secret) {
 console.log('updating config file...')
