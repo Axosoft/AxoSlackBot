@@ -141,6 +141,8 @@ controller.hears('(get my|get) (.*)(items)(.*)',['direct_message,direct_mention,
                         if(params.hasOwnProperty("filters")){
                           if(message.text.includes("page")){
                             helper.sendTextToSlack(slackToken, channelId, `I could not find any ${requestKeyWord(message.match[2])} ${requestKeyWord(message.match[3])} assigned to you on page \`${params.page}\` in Axosoft!`);
+                          }else if(message.text.includes("upcoming")){
+                            helper.sendTextToSlack(slackToken, channelId, `I could not find any ${requestKeyWord(message.match[2])} ${requestKeyWord(message.match[3])} in Axosoft!`);
                           }else{
                             helper.sendTextToSlack(slackToken, channelId, `I could not find any ${requestKeyWord(message.match[2])} ${requestKeyWord(message.match[3])} assigned to you in Axosoft!`);
                           }
@@ -150,10 +152,10 @@ controller.hears('(get my|get) (.*)(items)(.*)',['direct_message,direct_mention,
                             helper.sendTextToSlack(slackToken, channelId, `I could not find any ${requestKeyWord(message.match[2])} ${requestKeyWord(message.match[3])} that you are lookin' for!`);
                         }
                       }else{
-                        helper.sendDataToSlack(slackToken, message, BODY, axoBaseUrl, userData[0]);
+                         helper.sendDataToSlack(slackToken, message, BODY, axoBaseUrl, userData[0]);
                       }
                   }else{
-                    helper.sendTextToSlack(slackToken, channelId,"I could not connect to axosoft");
+                     helper.sendTextToSlack(slackToken, channelId,"I could not connect to axosoft");
                   }
                 });
              })

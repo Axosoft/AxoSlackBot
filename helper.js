@@ -679,22 +679,32 @@ paramsBuilder: function(axosoftUrl, axosoftToken, slackToken, message){
                         page = pageMatches[3];
                         params.page = page;
                       }
+
                       if(message.match[2] == 'open '){
                         params.filters = 'completion_date="1899-01-01"';
-                      }
-                      else if(message.match[2] == 'closed '){
+                      }else if(message.match[2] == 'closed '){
                         params.filters = 'completion_date=in[last30_days]';
-                      }
-                      else if(message.match[2] == 'updated '){
+                      }else if(message.match[2] == 'updated '){
                         params.sort_fields = 'last_updated_date_time DESC';
+                      }else if(message.match[2] == 'upcoming '){
+                        var today = new Date();
+                        Date.prototype.addDays = function(days){
+                            var date = new Date(this.valueOf());
+                            date.setDate(date.getDate() + days);
+                            return date;
+                        }
+
+                        params.due_date = `[${today.toISOString()}=${today.addDays(14).toISOString()}]`;
+                        params.filters = 'completion_date="1899-01-01"';
                       }
+
                       if(message.match[1] == 'get my'){
                           module.exports.getUserIdAxosoft(axosoftUrl, axosoftToken, slackToken, message)
                             .then(function(userIdAxo){
                                 params.filters = `assigned_to.id=${userIdAxo}`;
                                 return resolve(params);
                             }).catch(function(reason){
-                                  return reject(reason);
+                                return reject(reason);
                             })
                       }
                       else{
