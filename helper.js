@@ -664,6 +664,30 @@ formatAxoData: function(object){
                     return returnDataObject;
                   },
 
+textBuilder: function(message, params){
+                  return new Promise(function(resolve, reject){
+                              var requestedKeyWord = function(msg){
+                                if(msg != "")return msg;
+                                else return "";
+                              };
+
+                              var baseTxt = `I could not find any ${requestedKeyWord(message.match[2])} ${requestedKeyWord(message.match[3])}`;
+                              if(message.match.input.includes("my")){
+                                if(message.text.includes("page")){
+                                  resolve(`${baseTxt} assigned to you on page \`${params.page}\` in Axosoft!`);
+                                }else{
+                                  resolve(`${baseTxt} assigned to you in Axosoft!`);
+                                }
+                              }else{
+                                if(params.hasOwnProperty("filters") && (message.text.includes("page"))){
+                                  resolve(`${baseTxt} on page \`${params.page}\` in Axosoft!`);
+                                }else{
+                                  resolve(`${baseTxt} in Axosoft!`);
+                                }
+                              }
+                  });
+},
+
 paramsBuilder: function(axosoftUrl, axosoftToken, slackToken, message){
                   return new Promise(function(resolve, reject){
                       var params = {
@@ -714,4 +738,3 @@ paramsBuilder: function(axosoftUrl, axosoftToken, slackToken, message){
               }
 
 };
-

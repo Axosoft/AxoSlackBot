@@ -131,26 +131,10 @@ controller.hears('(get my|get) (.*)(items)(.*)',['direct_message,direct_mention,
                   if(!error && response.statusCode == 200){
                       var BODY = JSON.parse(body);
                       if(BODY.data.length == 0){
-                        var requestKeyWord = function(msg){
-                          if(msg != ""){
-                            return msg;
-                          }else{
-                            return "";
-                          }
-                        }
-                        if(params.hasOwnProperty("filters")){
-                          if(message.text.includes("page")){
-                            helper.sendTextToSlack(slackToken, channelId, `I could not find any ${requestKeyWord(message.match[2])} ${requestKeyWord(message.match[3])} assigned to you on page \`${params.page}\` in Axosoft!`);
-                          }else if(message.text.includes("upcoming")){
-                            helper.sendTextToSlack(slackToken, channelId, `I could not find any ${requestKeyWord(message.match[2])} ${requestKeyWord(message.match[3])} in Axosoft!`);
-                          }else{
-                            helper.sendTextToSlack(slackToken, channelId, `I could not find any ${requestKeyWord(message.match[2])} ${requestKeyWord(message.match[3])} assigned to you in Axosoft!`);
-                          }
-                        }else if(message.text.includes("page")){
-                            helper.sendTextToSlack(slackToken, channelId, `I could not find any ${requestKeyWord(message.match[2])} ${requestKeyWord(message.match[3])} on page \`${params.page}\`!`);
-                        }else{
-                            helper.sendTextToSlack(slackToken, channelId, `I could not find any ${requestKeyWord(message.match[2])} ${requestKeyWord(message.match[3])} that you are lookin' for!`);
-                        }
+                        helper.textBuilder(message, params)
+                        .then(function(txt){
+                            helper.sendTextToSlack(slackToken, channelId, txt);
+                        });
                       }else{
                          helper.sendDataToSlack(slackToken, message, BODY, axoBaseUrl, userData[0]);
                       }
