@@ -532,7 +532,7 @@ authorizeUser:function(bot, message){
                 var axosoftLoginUrl = axosoftUrl 
                 + '/auth?response_type=code'
                 + '&client_id='+ config.axosoftClientId
-                + '&redirect_uri=' + config.redirectUri + "authorizationCode" 
+                + '&redirect_uri=' + config.redirectUri.substring(0, config.redirectUri.indexOf("oauth")) + "authorizationCode"
                 + '&scope=read write'
                 + '&expiring=false'
                 + "&state="+ urlEncode(`userId=${message.user}&teamId=${message.team}&channelId=${message.channel}`);
@@ -562,7 +562,7 @@ authorizeUserwithoutCollection:function(bot, message, returnedData){
                                 var axosoftLoginUrl = baseUrl 
                                 + '/auth?response_type=code'
                                 + '&client_id='+ config.axosoftClientId
-                                + '&redirect_uri=' + config.redirectUri + "authorizationCode" 
+                                + '&redirect_uri=' + config.redirectUri.substring(0, config.redirectUri.indexOf("oauth")) + "authorizationCode"
                                 + '&scope=read write'
                                 + '&expiring=false'
                                 + "&state="+ urlEncode(`userId=${message.user}&teamId=${message.team}&channelId=${message.channel}`);
