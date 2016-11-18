@@ -18,7 +18,7 @@ if (!config.clientId || !config.clientSecret || !config.port) {
 controller.configureSlackApp({
     clientId: config.clientId,
     clientSecret: config.clientSecret,
-    redirectUri: config.redirectUri,
+    redirectUri: config.baseUri + "/oauth",
     scopes: ["identify","bot","commands","incoming-webhook"]
 });
 
@@ -46,7 +46,7 @@ controller.setupWebserver(config.port,function(err,webserver) {
         var params = {
           grant_type: "authorization_code",
           code: code,
-          redirect_uri: config.redirectUri.substring(0, config.redirectUri.indexOf("oauth")) + "authorizationCode",
+          redirect_uri: config.baseUri + "/authorizationCode",
           client_id: config.axosoftClientId,
           client_secret: config.axosoftClientSecret 
         };
