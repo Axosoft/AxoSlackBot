@@ -13,7 +13,7 @@ if (prefix == 'production') {
     prefix = '';
 }
 
-config.redirectUri = 'http://localhost:3004/oauth';
+config.baseUri = 'http://localhost:3004';
 config.mongoUri = 'mongodb://localhost:27017/slackData'
 
 if (process.env.AXO_slackbot_secret && process.env.AXO_slackbot_axosoft_secret) {
