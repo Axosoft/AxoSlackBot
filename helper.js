@@ -121,13 +121,13 @@ attachmentMaker: function (Body, axoBaseUrl, axosoftToken){
                       if(Body.data[x].hasOwnProperty("completion_date")){
                           axosoftData.completionDate = Body.data[x].completion_date;
                           attachmentArrays.push({
-                            color: "#FF8000",
+                            color: "#38B040",
                             text: `<${axosoftData.link}| ${axosoftData.axosoftId}> ${axosoftData.workItemType}  *${axosoftData.axosoftItemName}* \n ${axosoftData.assignedTo}  \`${axosoftData.workFlowStep}\` ${formatCompletionDate(axosoftData.completionDate)}`,
                             mrkdwn_in:["text"]
                           });
                       }else{
                           attachmentArrays.push({
-                            color: "#FF8000",
+                            color: "#38B040",
                             text: `<${axosoftData.link}| ${axosoftData.axosoftId}> ${axosoftData.workItemType}  *${axosoftData.axosoftItemName}* \n ${axosoftData.assignedTo}  \`${axosoftData.workFlowStep}\` ${formatDueDate(Body.data[x])}`,
                             mrkdwn_in:["text"]
                           });
@@ -168,13 +168,13 @@ attachmentMaker: function (Body, axoBaseUrl, axosoftToken){
                         if(itemsWithParent[z].hasOwnProperty("completion_date")){
                             data.completionDate = itemsWithParent[z].completion_date;
                             attachmentArrays.splice(indexOfitemsWithParent[z],0,{
-                                color: "#FF8000",
+                                color: "#38B040",
                                 text: `<${data.link}| ${data.axosoftId}> ${data.workItemType}  *${data.axosoftItemName}* \n ${data.assignedTo}  \`${data.workFlowStep}\` ${formatCompletionDate(data.completionDate)} \nParent ${data.parent}: <${data.parentLink}| ${data.parentName}>`,
                                 mrkdwn_in:["text"]
                             });
                         }else{
                             attachmentArrays.splice(indexOfitemsWithParent[z],0,{
-                              color: "#FF8000",
+                              color: "#38B040",
                               text: `<${data.link}| ${data.axosoftId}> ${data.workItemType}  *${data.axosoftItemName}* \n ${data.assignedTo}  \`${data.workFlowStep}\` ${formatDueDate(itemsWithParent[z])} \nParent ${data.parent}: <${data.parentLink}| ${data.parentName}>`,
                               mrkdwn_in:["text"]
                             }); 
