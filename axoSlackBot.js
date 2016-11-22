@@ -55,7 +55,7 @@ controller.setupWebserver(config.port,function(err,webserver) {
         helper.makeRequest("GET", `${axoBaseUrl}/api/oauth2/token`, params, function(error, response, body){
             var Body = JSON.parse(body);
             if(Body.access_token != null){
-                helper.saveAxosoftAcessToken(userId, teamId, Body.access_token);
+                helper.saveAxosoftAccessToken(userId, teamId, Body.access_token);
                 helper.retrieveDataFromDataBase(teamId, userId,"teams")
                 .then(function(returnedDataFromDb){
                   slackToken = returnedDataFromDb.slackAccessToken;
