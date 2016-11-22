@@ -210,6 +210,7 @@ getParentName: function(parentIds, axoBaseUrl, axosoftToken){
                         filters: `id=in[${parentIds}]`,
                         columns: "name",
                       };
+                      // TODO: update to use npm packate
                       module.exports.makeRequest("GET", `${axoBaseUrl}/api/v5/features`, params, function(error, response, body){
                         if(!error && response.statusCode == 200){
                             var BODY = JSON.parse(body);
@@ -360,6 +361,7 @@ checkAxosoftDataForUser: function(slackTeamId, slackUserId){
                             return Promise.all([one, two]);
 },
 
+//TODO: update to a mapper
 checkForProperty: function(object, propertyName){
                       var formatDueDate = function(dueDate){
                           if(dueDate == null)return '';
