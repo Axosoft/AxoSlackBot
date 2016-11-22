@@ -1,5 +1,6 @@
 const config = require('./config.json');
 const helper = require('./helper.js');
+const nodeAxosoft = require('./nodeAxosoft.js');
 const Botkit = require('botkit');
 const request = require('request');
 const MongoClient = require('mongodb').MongoClient;
@@ -54,11 +55,11 @@ controller.setupWebserver(config.port,function(err,webserver) {
         helper.makeRequest("GET", `${axoBaseUrl}/api/oauth2/token`, params, function(error, response, body){
             var Body = JSON.parse(body);
             if(Body.access_token != null){
-                helper.saveAxosoftAcessToken(userId, teamId, Body.access_token);
+                helper.saveAxosoftAccessToken(userId, teamId, Body.access_token);
                 helper.retrieveDataFromDataBase(teamId, userId,"teams")
                 .then(function(returnedDataFromDb){
                   slackToken = returnedDataFromDb.slackAccessToken;
-                  helper.sendTextToSlack(slackToken, channelId, "Authorization successful.what can I do for ya boss?");
+                  helper.sendTextToSlack(slackToken, channelId, "Authorization successful!");
                   res.send('<html><head><title>Axosoft Slack Authorized</title></head><body><h1>Authorization successful</h1><br/><h4>please close this window</h4></body></html>');
                 }).catch(function(reason){
                   console.log(reason);
@@ -126,22 +127,26 @@ controller.hears('(get my|get) (.*)(items)(.*)',['direct_message,direct_mention,
               var slackToken = returnedData.slackAccessToken;
 
               helper.paramsBuilder(axoBaseUrl, userData[0], slackToken, message)
-              .then(function(params){
-                  helper.makeRequest("GET", `${axoBaseUrl}/api/v5/features`, params, function(error, response, body){
-                  if(!error && response.statusCode == 200){
-                      var BODY = JSON.parse(body);
-                      if(BODY.data.length == 0){
-                        helper.textBuilder(message, params)
-                        .then(function(txt){
-                            helper.sendTextToSlack(slackToken, channelId, txt);
-                        });
-                      }else{
-                         helper.sendDataToSlack(slackToken, message, BODY, axoBaseUrl, userData[0]);
-                      }
-                  }else{
-                     helper.sendTextToSlack(slackToken, channelId,"I could not connect to axosoft");
-                  }
-                });
+              .then(function(args){
+                  var nodeAxo = new nodeAxosoft(axoBaseUrl, args.access_token);
+                  var argsArray = [];
+                  argsArray.push(args);
+
+                  nodeAxo.promisify(nodeAxo.axosoftApi.Features.get, argsArray) 
+                  .then(function(response){
+                    if(response.data.length == 0){
+                      helper.textBuilder(message, params)
+                      .then(function(txt){
+                          helper.sendTextToSlack(slackToken, channelId, txt);
+                      });
+                    }else{
+                      helper.sendDataToSlack(slackToken, message, response, axoBaseUrl, userData[0]);
+                    }
+                  })
+                  .catch(function(reason){
+                    console.log(reason);
+                    helper.sendTextToSlack(slackToken, channelId, reason);
+                  });
              })
              .catch(function(reason){
                console.log(reason);
@@ -159,7 +164,7 @@ controller.hears('(get my|get) (.*)(items)(.*)',['direct_message,direct_mention,
          .then(function(val){
            helper.authorizeUserwithoutCollection(bot, message);
          }).catch(function(reason){
-           console.log("something went wrong with building a collection for the new user in the data base!");
+           console.log("Something went wrong with building a collection for the new user in the database!");
            //TODO not a bad idea to slack the user! 
          })
       }else{
@@ -170,6 +175,7 @@ controller.hears('(get my|get) (.*)(items)(.*)',['direct_message,direct_mention,
 
 controller.hears('(.*)(axo)(d|f|t|i|[]{0})(\\s|[]{0})(\\d+)(.*)',['direct_message,direct_mention,mention'],function(bot,message) { 
       var channelId = message.channel;
+      var columns = "description,item_type,name,id,priority,due_date,workflow_step,remaining_duration.duration_text,assigned_to,release";
       var formatDueDate = function(dueDate){
           if(dueDate == null)return '';
           else return '*Due Date:* ' + helper.timeFormat(dueDate);
@@ -177,10 +183,10 @@ controller.hears('(.*)(axo)(d|f|t|i|[]{0})(\\s|[]{0})(\\d+)(.*)',['direct_messag
 
       var formatColumns = function(itemType){
         if(itemType != "features"){
-          return "description,item_type,name,id,priority,due_date,workflow_step,remaining_duration.duration_text,assigned_to,release";
+          return columns;
         }
         else{
-          return "description,item_type,name,id,priority,due_date,workflow_step,remaining_duration.duration_text,assigned_to,release,custom_fields.custom_1";
+          return columns + ",custom_fields.custom_1";
         }
       };
 
@@ -209,56 +215,53 @@ controller.hears('(.*)(axo)(d|f|t|i|[]{0})(\\s|[]{0})(\\d+)(.*)',['direct_messag
             .then(function(returnedData){
                   var axoBaseUrl = returnedData.axosoftBaseURL;
                   var slackToken = returnedData.slackAccessToken;
-                  var params = {
+                  var args = [{
                     access_token: axosoftToken[0],
                     item_id: item_id,
                     columns: formatColumns(item_type), 
                     page_size: 10
-                  };
+                  }];
 
-                  helper.makeRequest("GET", `${axoBaseUrl}/api/v5/${item_type}`, params, function(error, response, body){
-                    if(!error && response.statusCode == 200){
-                              var BODY = JSON.parse(body);
-                              if(BODY.data.length == 0){
-                                  helper.sendTextToSlack(slackToken, channelId, `I could not find any \`${item_type}\` in Axosoft with \`id = ${item_id}\`!`);
-                              }
-                              else{
-                                  var axosoftData = {
-                                        link: `${axoBaseUrl}/viewitem?id=${BODY.data[0].id}&type=${BODY.data[0].item_type}&force_use_number=true/`,
-                                        axosoftItemName: BODY.data[0].name,
-                                        Parent: helper.checkForProperty(BODY.data[0], "parent.id"),
-                                        Project: helper.checkForProperty(BODY.data[0], "project.name"),
-                                        Workflow_Step: helper.checkForProperty(BODY.data[0], "workflow_step.name"),
-                                        Assigned_To: helper.checkForProperty(BODY.data[0], "assigned_to"),
-                                        Priority: helper.checkForProperty(BODY.data[0], "priority.name"),
-                                        axosoftId: BODY.data[0].number,
-                                        Work_Item_Type: helper.checkForProperty(BODY.data[0], "custom_fields.custom_1"),
-                                        Due_Date: helper.checkForProperty(BODY.data[0], "due_date"),
-                                        Remaining_Estimate: helper.checkForProperty(BODY.data[0], "remaining_duration.duration_text"),
-                                        Release: helper.checkForProperty(BODY.data[0], "release.name"),
-                                        SubItems: helper.checkForProperty(BODY.data[0], "subitems.count"),
-                                        Description: helper.checkForProperty(BODY.data[0], "description")
-                                  };
+                  var nodeAxo = new nodeAxosoft(axoBaseUrl, args[0].access_token);
+                  nodeAxo.promisify(nodeAxo.axosoftApi.Features.get, args)
+                  .then(function(response){
+                      if(response.data.length == 0){
+                        helper.sendTextToSlack(slackToken, channelId, `I could not find item #\`${message.match[5]}\` in Axosoft!`);
+                      }else{
+                        var data = response.data[0];
+                        var axosoftData = {
+                            link: `${axoBaseUrl}/viewitem?id=${data.id}&type=${data.item_type}&force_use_number=true/`,
+                            axosoftItemName: data.name,
+                            Parent: helper.checkForProperty(data, "parent.id"), 
+                            Project: helper.checkForProperty(data, "project.name"),
+                            Workflow_Step: helper.checkForProperty(data, "workflow_step.name"),
+                            Assigned_To: helper.checkForProperty(data, "assigned_to"),
+                            Priority: helper.checkForProperty(data, "priority.name"),
+                            axosoftId: data.number,
+                            Work_Item_Type: helper.checkForProperty(data, "custom_fields.custom_1"),
+                            Due_Date: helper.checkForProperty(data, "due_date"), 
+                            Remaining_Estimate: helper.checkForProperty(data, "remaining_duration.duration_text"),
+                            Release: helper.checkForProperty(data, "release.name"),
+                            SubItems: helper.checkForProperty(data, "subitems.count"),
+                            Description: helper.checkForProperty(data, "description")
+                        };
 
-                                  var params = {
-                                        token: slackToken,
-                                        channel:channelId,
-                                        mrkdwn: true,
-                                        attachments:JSON.stringify([{
-                                            color: "#FF8000",
-                                            text: `<${axosoftData.link}|${axosoftData.axosoftId}>: ${axosoftData.axosoftItemName}`,
-                                            fields: helper.formatAxoData(axosoftData),
-                                            mrkdwn_in:["text"]
-                                        }])
-                                  };
-                                  helper.makeRequest("GET","https://slack.com/api/chat.postMessage", params, function(err, response, body){});
-                              }
-                    }else if(response.statusCode == 500){
-                      helper.sendTextToSlack(slackToken, channelId, `I could not find any \`${item_type}\` in Axosoft with \`id = ${item_id}\`!`);
-                    }
-                    else{
-                      helper.sendTextToSlack(slackToken, channelId,"I could not connect to axosoft!");
-                    }
+                        var params = {
+                              token: slackToken,
+                              channel:channelId,
+                              mrkdwn: true,
+                              attachments:JSON.stringify([{
+                                  color: "#FF8000",
+                                  text: `<${axosoftData.link}|${axosoftData.axosoftId}>: ${axosoftData.axosoftItemName}`,
+                                  fields: helper.formatAxoData(axosoftData),
+                                  mrkdwn_in:["text"]
+                              }])
+                        };
+                        helper.makeRequest("GET","https://slack.com/api/chat.postMessage", params, function(err, response, body){});
+                      }
+                  })
+                  .catch(function(error){
+                    helper.sendTextToSlack(slackToken, channelId, reason);
                   });
             })
             .catch(function(reason){
@@ -273,27 +276,12 @@ controller.hears('(.*)(axo)(d|f|t|i|[]{0})(\\s|[]{0})(\\d+)(.*)',['direct_messag
                 helper.authorizeUserwithoutCollection(bot, message);
               }).catch(function(reason){
                 //TODO not a bad idea to slack user! 
-                console.log("something went wrong with building a collection for the new user in the data base!");
+                console.log("Something went wrong with building a collection for the new user in the database!");
               })
             }else{
               helper.authorizeUser(bot, message);
             }
        });
-});
-
-controller.hears(['identify yourself', 'who are you', 'who are you?', 'what is your name'],['direct_message,direct_mention,mention,ambient'], function(bot, message){
-  bot.reply(message,':robot_face:Wuddup dawg? I am a bot named <@' + bot.identity.name + '>' );
-});
-
-controller.on(['direct_message','mention','direct_mention'],function(bot,message) {
-    bot.api.reactions.add({
-      timestamp: message.ts,
-      channel: message.channel,
-      name: 'robot_face',
-    },function(err) {
-      if (err) { console.log(err) }
-      bot.reply(message,'I heard you loud and clear boss.');
-    });
 });
 
 controller.storage.teams.all(function(err,teams) {
