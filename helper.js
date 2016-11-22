@@ -33,12 +33,13 @@ formatText: function(body, message){
                 }
                 txt = txt + " " +  message.match[2];
 
+                //TODO: cleanup
                 if(message.text.match('(.*)(page)(\\s)(\\d+)(.*)') != null){
                   return `${txt} items ${message.text.match('(.*)(page)(\\s)(\\d+)(.*)')[4]} of ${pageNumber}`;
                 }else if(pageNumber>1){
                   return `${txt} items page 1 of ${pageNumber}`;
                 }else if(message.text.includes("closed")){
-                  return txt = txt + "items [within last 30 days]";
+                  return txt = txt + "items closed in the last 30 days]";
                 }else{
                   return `${txt} items`
                 };
@@ -317,11 +318,11 @@ checkAxosoftDataForUser: function(slackTeamId, slackUserId){
                                             console.log(err);
                                           }else if(results.length == 0){
                                               //No collection 
-                                              console.log(`There is no collection with this ${slackUserId} Id in the data base! New collection is being created...`)
+                                              console.log(`There is no collection with this ${slackUserId} Id in the databbase! New collection is being created...`)
                                               reject("No collection")
                                           }else{
                                               if(results[0].axosoftAccessToken === undefined){
-                                                console.log(`User with ${slackUserId} Id does not have axosoft access token in the data base!`);
+                                                console.log(`User with ${slackUserId} Id does not have axosoft access token in the database!`);
                                                 reject("No axosoft Access Token"); 
                                               }else{
                                                 resolve(results[0].axosoftAccessToken);
@@ -340,11 +341,11 @@ checkAxosoftDataForUser: function(slackTeamId, slackUserId){
                                           database.collection('teams').find({"id":slackTeamId}).toArray(function(err, results){
                                               if(err){
                                                 console.log(err);
-                                                reject("Not able to connect to the data base");
+                                                reject("Not able to connect to the database");
                                               }
                                               else{
                                                   if(results[0] === undefined){
-                                                      console.log("There is no team with the speciftied id in our data base!");
+                                                      console.log("There is no team with the speciftied id in our database!");
                                                       reject("No team");
                                                   }else if(results[0].axosoftBaseURL == undefined){
                                                       reject("No axosoft base url")
@@ -422,7 +423,7 @@ retrieveDataFromDataBase: function(slackTeamId, slackUserId, documentName){
                                         database.collection('users').find({"team_id":slackTeamId, "id": slackUserId }).toArray(function(err, results){
                                             if(err) return console.log(err);
                                               if(results[0] === undefined){
-                                                console.log("There is no document with the specified slack user id in our data base!");
+                                                console.log("There is no document with the specified slack user id in our database!");
                                                 reject({axosoftAccessToken : null});
                                               }else{
                                                     if(results[0].axosoftAccessToken === undefined){
@@ -437,12 +438,12 @@ retrieveDataFromDataBase: function(slackTeamId, slackUserId, documentName){
                                         database.collection('teams').find({"id":slackTeamId}).toArray(function(err, results){
                                             if(err){
                                               console.log(err);
-                                              reject("Not able to connect to the data base");
+                                              reject("Not able to connect to the database");
                                             }
                                             else{
                                                 if(results[0] === undefined){
-                                                    console.log("There is no team with the speciftied id in our data base!");
-                                                    reject("There is no team with the speciftied id in our data base!");
+                                                    console.log("There is no team with the speciftied id in our database!");
+                                                    reject("There is no team with the speciftied id in our database!");
                                                 }else{
                                                       resolve({
                                                           axosoftBaseURL: results[0].axosoftBaseURL,
@@ -496,11 +497,11 @@ authorizeUser:function(bot, message){
                           + '&expiring=false'
                           + "&state="+ urlEncode(`userId=${message.user}&teamId=${message.team}&channelId=${message.channel}`);
 
-                          module.exports.sendTextToSlack(slackToken, message.channel, `Yo, you are not authorized from Axosoft! <${axosoftLoginUrl}| Authorize me>` )
+                          module.exports.sendTextToSlack(slackToken, message.channel, 'I need permissions to talk to your Axosoft account. <${axosoftLoginUrl}|Click here to Authorize>' )
                       }
                     }).catch(function(reason){
                         console.log(reason);
-                        module.exports.sendTextToSlack(slackToken, message.channel,"I could not find the required data in database to get data from axosoft!");
+                        module.exports.sendTextToSlack(slackToken, message.channel,"I could not connect to your Axosoft account.");
                     })
 },
 
@@ -512,7 +513,7 @@ authorizeUserwithoutCollection:function(bot, message, returnedData){
                                         saveAxoBaseUrl = true;
                                       }
                                       bot.startConversation(message, function(err, convo) {
-                                          convo.ask("what's your base URL holmes? i.e. https://example.axosoft.com", function(response, convo) {
+                                          convo.ask("What is the URL or your Axosoft account? i.e. https://example.axosoft.com", function(response, convo) {
                                           var baseUrl = module.exports.formatAxosoftBaseUrl(response.text.replace(/[<>]/g, ''));
                                           module.exports.makeRequest('GET', baseUrl + '/api/version', {}, function(error, response, body){
                                             if(!error && response.statusCode == 200){
@@ -533,15 +534,15 @@ authorizeUserwithoutCollection:function(bot, message, returnedData){
                                                 module.exports.retrieveDataFromDataBase(message.team, message.user,"teams")
                                                   .then(function(returnedDataFromDb){
                                                     var slackToken = returnedDataFromDb.slackAccessToken;
-                                                    module.exports.sendTextToSlack(slackToken, message.channel, `Yo, you are not authorized from Axosoft! <${axosoftLoginUrl}|Authorize me>`);
+                                                    module.exports.sendTextToSlack(slackToken, message.channel, 'I need permissions to talk to your Axosoft account. <${axosoftLoginUrl}|Click here to Authorize>');
                                                   })
                                                   .catch(function(reason){
                                                     //can not get slackToken from DB
-                                                    module.exports.sendTextToSlack(slackToken, message.channel, "There is an error!"); 
+                                                    module.exports.sendTextToSlack(slackToken, message.channel, "There was an authorizing your account"); 
                                                   })
                                               }
                                               else{
-                                                convo.say("Please upgrade to Axosoft 17 or later");
+                                                convo.say("Please upgrade your installation to Axosoft 17 or later");
                                                 convo.next();
                                               }
                                             }else{
@@ -630,21 +631,9 @@ textBuilder: function(message, params){
                               if(msg != "")return msg;
                               else return "";
                             };
+                            var ofYourConditional = message.match.input.includes("my") ? 'of your ' : '';
 
-                            var baseTxt = `I could not find any ${requestedKeyWord(message.match[2])} ${requestedKeyWord(message.match[3])}`;
-                            if(message.match.input.includes("my")){
-                              if(message.text.includes("page")){
-                                resolve(`${baseTxt} assigned to you on page \`${params.page}\` in Axosoft!`);
-                              }else{
-                                resolve(`${baseTxt} assigned to you in Axosoft!`);
-                              }
-                            }else{
-                              if(params.hasOwnProperty("filters") && (message.text.includes("page"))){
-                                resolve(`${baseTxt} on page \`${params.page}\` in Axosoft!`);
-                              }else{
-                                resolve(`${baseTxt} in Axosoft!`);
-                              }
-                            }
+                            var baseTxt = `I could not find any ${ofYourConditional}${requestedKeyWord(message.match[2])}${' ' + requestedKeyWord(message.match[3])} items`;
                 });
 },
 

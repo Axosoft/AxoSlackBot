@@ -59,7 +59,7 @@ controller.setupWebserver(config.port,function(err,webserver) {
                 helper.retrieveDataFromDataBase(teamId, userId,"teams")
                 .then(function(returnedDataFromDb){
                   slackToken = returnedDataFromDb.slackAccessToken;
-                  helper.sendTextToSlack(slackToken, channelId, "Authorization successful.what can I do for ya boss?");
+                  helper.sendTextToSlack(slackToken, channelId, "Authorization successful!");
                   res.send('<html><head><title>Axosoft Slack Authorized</title></head><body><h1>Authorization successful</h1><br/><h4>please close this window</h4></body></html>');
                 }).catch(function(reason){
                   console.log(reason);
@@ -164,7 +164,7 @@ controller.hears('(get my|get) (.*)(items)(.*)',['direct_message,direct_mention,
          .then(function(val){
            helper.authorizeUserwithoutCollection(bot, message);
          }).catch(function(reason){
-           console.log("something went wrong with building a collection for the new user in the data base!");
+           console.log("Something went wrong with building a collection for the new user in the database!");
            //TODO not a bad idea to slack the user! 
          })
       }else{
@@ -226,7 +226,7 @@ controller.hears('(.*)(axo)(d|f|t|i|[]{0})(\\s|[]{0})(\\d+)(.*)',['direct_messag
                   nodeAxo.promisify(nodeAxo.axosoftApi.Features.get, args)
                   .then(function(response){
                       if(response.data.length == 0){
-                        helper.sendTextToSlack(slackToken, channelId, `I could not find an item with id \`${message.match[5]}\` in Axosoft!`);
+                        helper.sendTextToSlack(slackToken, channelId, `I could not find item #\`${message.match[5]}\` in Axosoft!`);
                       }else{
                         var data = response.data[0];
                         var axosoftData = {
@@ -276,27 +276,12 @@ controller.hears('(.*)(axo)(d|f|t|i|[]{0})(\\s|[]{0})(\\d+)(.*)',['direct_messag
                 helper.authorizeUserwithoutCollection(bot, message);
               }).catch(function(reason){
                 //TODO not a bad idea to slack user! 
-                console.log("something went wrong with building a collection for the new user in the data base!");
+                console.log("Something went wrong with building a collection for the new user in the database!");
               })
             }else{
               helper.authorizeUser(bot, message);
             }
        });
-});
-
-controller.hears(['identify yourself', 'who are you', 'who are you?', 'what is your name'],['direct_message,direct_mention,mention,ambient'], function(bot, message){
-  bot.reply(message,':robot_face:Wuddup dawg? I am a bot named <@' + bot.identity.name + '>' );
-});
-
-controller.on(['direct_message','mention','direct_mention'],function(bot,message) {
-    bot.api.reactions.add({
-      timestamp: message.ts,
-      channel: message.channel,
-      name: 'robot_face',
-    },function(err) {
-      if (err) { console.log(err) }
-      bot.reply(message,'I heard you loud and clear boss.');
-    });
 });
 
 controller.storage.teams.all(function(err,teams) {
