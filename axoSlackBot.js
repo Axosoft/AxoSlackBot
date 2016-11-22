@@ -226,7 +226,7 @@ controller.hears('(.*)(axo)(d|f|t|i|[]{0})(\\s|[]{0})(\\d+)(.*)',['direct_messag
                   nodeAxo.promisify(nodeAxo.axosoftApi.Features.get, args)
                   .then(function(response){
                       if(response.data.length == 0){
-                        helper.sendTextToSlack(slackToken, channelId, `I could not find item #\`${message.match[5]}\` in Axosoft!`);
+                        helper.sendTextToSlack(slackToken, channelId, `I could not find item \`# ${message.match[5]}\``);
                       }else{
                         var data = response.data[0];
                         var axosoftData = {
@@ -251,7 +251,7 @@ controller.hears('(.*)(axo)(d|f|t|i|[]{0})(\\s|[]{0})(\\d+)(.*)',['direct_messag
                               channel:channelId,
                               mrkdwn: true,
                               attachments:JSON.stringify([{
-                                  color: "#FF8000",
+                                  color: "#38B040",
                                   text: `<${axosoftData.link}|${axosoftData.axosoftId}>: ${axosoftData.axosoftItemName}`,
                                   fields: helper.formatAxoData(axosoftData),
                                   mrkdwn_in:["text"]

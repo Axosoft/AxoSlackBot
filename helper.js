@@ -497,7 +497,7 @@ authorizeUser:function(bot, message){
                           + '&expiring=false'
                           + "&state="+ urlEncode(`userId=${message.user}&teamId=${message.team}&channelId=${message.channel}`);
 
-                          module.exports.sendTextToSlack(slackToken, message.channel, 'I need permissions to talk to your Axosoft account. <${axosoftLoginUrl}|Click here to Authorize>' )
+                          module.exports.sendTextToSlack(slackToken, message.channel, `I need permissions to talk to your Axosoft account. <${axosoftLoginUrl}|Click here to Authorize>` )
                       }
                     }).catch(function(reason){
                         console.log(reason);
@@ -534,7 +534,7 @@ authorizeUserwithoutCollection:function(bot, message, returnedData){
                                                 module.exports.retrieveDataFromDataBase(message.team, message.user,"teams")
                                                   .then(function(returnedDataFromDb){
                                                     var slackToken = returnedDataFromDb.slackAccessToken;
-                                                    module.exports.sendTextToSlack(slackToken, message.channel, 'I need permissions to talk to your Axosoft account. <${axosoftLoginUrl}|Click here to Authorize>');
+                                                    module.exports.sendTextToSlack(slackToken, message.channel, `I need permissions to talk to your Axosoft account. <${axosoftLoginUrl}|Click here to Authorize>`);
                                                   })
                                                   .catch(function(reason){
                                                     //can not get slackToken from DB
