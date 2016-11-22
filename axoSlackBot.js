@@ -225,36 +225,40 @@ controller.hears('(.*)(axo)(d|f|t|i|[]{0})(\\s|[]{0})(\\d+)(.*)',['direct_messag
                   var nodeAxo = new nodeAxosoft(axoBaseUrl, args[0].access_token);
                   nodeAxo.promisify(nodeAxo.axosoftApi.Features.get, args)
                   .then(function(response){
-                      var data = response.data[0];
-                      var axosoftData = {
-                          link: `${axoBaseUrl}/viewitem?id=${data.id}&type=${data.item_type}&force_use_number=true/`,
-                          axosoftItemName: data.name,
-                          Parent: helper.checkForProperty(data, "parent.id"), 
-                          Project: helper.checkForProperty(data, "project.name"),
-                          Workflow_Step: helper.checkForProperty(data, "workflow_step.name"),
-                          Assigned_To: helper.checkForProperty(data, "assigned_to"),
-                          Priority: helper.checkForProperty(data, "priority.name"),
-                          axosoftId: data.number,
-                          Work_Item_Type: helper.checkForProperty(data, "custom_fields.custom_1"),
-                          Due_Date: helper.checkForProperty(data, "due_date"), 
-                          Remaining_Estimate: helper.checkForProperty(data, "remaining_duration.duration_text"),
-                          Release: helper.checkForProperty(data, "release.name"),
-                          SubItems: helper.checkForProperty(data, "subitems.count"),
-                          Description: helper.checkForProperty(data, "description")
-                      };
+                      if(response.data.length == 0){
+                        helper.sendTextToSlack(slackToken, channelId, `I could not find an item with id \`${message.match[5]}\` in Axosoft!`);
+                      }else{
+                        var data = response.data[0];
+                        var axosoftData = {
+                            link: `${axoBaseUrl}/viewitem?id=${data.id}&type=${data.item_type}&force_use_number=true/`,
+                            axosoftItemName: data.name,
+                            Parent: helper.checkForProperty(data, "parent.id"), 
+                            Project: helper.checkForProperty(data, "project.name"),
+                            Workflow_Step: helper.checkForProperty(data, "workflow_step.name"),
+                            Assigned_To: helper.checkForProperty(data, "assigned_to"),
+                            Priority: helper.checkForProperty(data, "priority.name"),
+                            axosoftId: data.number,
+                            Work_Item_Type: helper.checkForProperty(data, "custom_fields.custom_1"),
+                            Due_Date: helper.checkForProperty(data, "due_date"), 
+                            Remaining_Estimate: helper.checkForProperty(data, "remaining_duration.duration_text"),
+                            Release: helper.checkForProperty(data, "release.name"),
+                            SubItems: helper.checkForProperty(data, "subitems.count"),
+                            Description: helper.checkForProperty(data, "description")
+                        };
 
-                      var params = {
-                            token: slackToken,
-                            channel:channelId,
-                            mrkdwn: true,
-                            attachments:JSON.stringify([{
-                                color: "#FF8000",
-                                text: `<${axosoftData.link}|${axosoftData.axosoftId}>: ${axosoftData.axosoftItemName}`,
-                                fields: helper.formatAxoData(axosoftData),
-                                mrkdwn_in:["text"]
-                            }])
-                      };
-                      helper.makeRequest("GET","https://slack.com/api/chat.postMessage", params, function(err, response, body){});
+                        var params = {
+                              token: slackToken,
+                              channel:channelId,
+                              mrkdwn: true,
+                              attachments:JSON.stringify([{
+                                  color: "#FF8000",
+                                  text: `<${axosoftData.link}|${axosoftData.axosoftId}>: ${axosoftData.axosoftItemName}`,
+                                  fields: helper.formatAxoData(axosoftData),
+                                  mrkdwn_in:["text"]
+                              }])
+                        };
+                        helper.makeRequest("GET","https://slack.com/api/chat.postMessage", params, function(err, response, body){});
+                      }
                   })
                   .catch(function(error){
                     helper.sendTextToSlack(slackToken, channelId, reason);
