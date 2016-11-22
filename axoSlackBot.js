@@ -41,16 +41,17 @@ controller.setupWebserver(config.port,function(err,webserver) {
     controller.webserver.get('/authorizationCode', function(req, res) {
         var code = req.query.code;
         var axoBaseUrl = req.headers.referer.substr(0, req.headers.referer.indexOf("auth"));
-        //TODO: make so parameters independent of order
-        var userId = req.query.state.split('&')[0].substring(req.query.state.split('&')[0].indexOf("=")+1);
-        var teamId = req.query.state.split('&')[1].substring(req.query.state.split('&')[1].indexOf("=")+1);
-        var channelId = req.query.state.split('&')[2].substring(req.query.state.split('&')[2].indexOf("=")+1);
+        var object = helper.getParamsFromQueryString(req.query);
+        var userId = object.userId;
+        var teamId = object.teamId;
+        var channelId = object.channelId;
+
         var params = {
           grant_type: "authorization_code",
           code: code,
           redirect_uri: config.baseUri + "/authorizationCode",
           client_id: config.axosoftClientId,
-          client_secret: config.axosoftClientSecret 
+          client_secret: config.axosoftClientSecret
         };
 
         helper.makeRequest("GET", `${axoBaseUrl}/api/oauth2/token`, params, function(error, response, body){

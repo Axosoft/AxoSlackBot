@@ -686,6 +686,16 @@ paramsBuilder: function(axosoftUrl, axosoftToken, slackToken, message){
                         return resolve(params);
                       }
                   });
-}
+},
+
+getParamsFromQueryString: function(query){
+                              var object = new Object();
+                              var params = query.state.split("&");
+                              params.forEach(function(param) {
+                                var kvp = param.split("=");
+                                object[kvp[0]] = kvp[1];
+                              });
+                              return object;
+},
 
 };
