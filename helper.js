@@ -4,6 +4,7 @@ const MongoClient = require('mongodb').MongoClient;
 const qs = require('querystring');
 const striptags = require('striptags');
 const urlEncode = require('urlencode');
+const nodeAxosoft = require('./nodeAxosoft.js');
 
 module.exports = {
 makeRequest: function(method, URL, params, callback){
@@ -205,23 +206,27 @@ attachmentMaker: function (Body, axoBaseUrl, axosoftToken, myKeyWordExists){
 getParentName: function(parentIds, axoBaseUrl, axosoftToken){
                   var parentDictionary = {}; 
                   return new Promise(function(resolve, reject){
-                      var params = {
+                      var args = [{
                         access_token: axosoftToken,
                         filters: `id=in[${parentIds}]`,
                         columns: "name",
-                      };
-                      // TODO: update to use npm packate
-                      module.exports.makeRequest("GET", `${axoBaseUrl}/api/v5/features`, params, function(error, response, body){
-                        if(!error && response.statusCode == 200){
-                            var BODY = JSON.parse(body);
-                            if(BODY.data.length != 0){
-                              for(x=0; x<BODY.data.length; x++){
-                                parentDictionary[BODY.data[x].id] = BODY.data[x].name;
-                              }
-                              resolve(parentDictionary);
+                      }];
+                      var nodeAxo = new nodeAxosoft(axoBaseUrl, args[0].access_token);
+                      nodeAxo.promisify(nodeAxo.axosoftApi.Features.get, args)
+                      .then(function(response){
+                        if(response.data.length != 0){
+                            for(x=0; x<response.data.length; x++){
+                              parentDictionary[response.data[x].id] = response.data[x].name;
                             }
+                            resolve(parentDictionary);
+                        }else{
+                          console.log("helper.getParentName data.length == 0");
                         }
                       })
+                      .catch(function(reason){
+                        console.log(reason);
+                        reject(reason);
+                      });
                   });
 },
 
