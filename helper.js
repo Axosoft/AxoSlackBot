@@ -635,10 +635,15 @@ titleBuilder: function(name){
                     {value : "description", title: "Description"},
                   ];
 
+                  var replaceAll =  function(find, replacement, value){
+                                  var re = new RegExp(find, 'g');
+                                  return value.replace(re, replacement);
+                  };
+
                   var returnTitle =  titles.find(function(item){
                       return name == item.value;
                   });
-                  return (returnTitle != undefined) ? returnTitle : name.charAt(0).toUpperCase() + name.slice(1);
+                  return (returnTitle != undefined) ? returnTitle : name.charAt(0).toUpperCase() + replaceAll("_", " ", name.slice(1));
 },
 
 axosoftDataBuilder: function(baseUrl, data){
