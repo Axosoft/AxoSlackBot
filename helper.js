@@ -5,6 +5,7 @@ const qs = require('querystring');
 const striptags = require('striptags');
 const urlEncode = require('urlencode');
 const nodeAxosoft = require('./nodeAxosoft.js');
+const entities = require("entities");
 
 module.exports = {
 makeRequest: function(method, URL, params, callback){
@@ -366,57 +367,6 @@ checkAxosoftDataForUser: function(slackTeamId, slackUserId){
                             return Promise.all([one, two]);
 },
 
-//TODO: update to a mapper
-checkForProperty: function(object, propertyName){
-                      var formatDueDate = function(dueDate){
-                          if(dueDate == null)return '';
-                          else return module.exports.timeFormat(dueDate);
-                      };
-
-                    if(propertyName.includes(".")){
-                        var afterDotPropertyName = propertyName.substr(propertyName.indexOf('.') + 1);
-                        var beforeDotPropertyName = propertyName.substr(0, propertyName.indexOf('.'));
-
-                        if(!object.hasOwnProperty(beforeDotPropertyName)){
-                          return null;
-                        }
-
-                        if((object[beforeDotPropertyName])[afterDotPropertyName] == null || (object[beforeDotPropertyName])[afterDotPropertyName] == ""){
-                          return null;
-                        }
-                        else{
-                          return (object[beforeDotPropertyName])[afterDotPropertyName];
-                        }
-                    }
-                    else{
-                      if(!object.hasOwnProperty(propertyName)){
-                          return null;
-                        }else if(propertyName == "description"){
-                          if(object[propertyName] == ""){
-                            return null;
-                          }else{
-                            return striptags(object[propertyName]);
-                          }
-                        }else if(propertyName == "assigned_to"){
-                          if(((object[propertyName])["name"] == "") || ((object[propertyName])["name"] == null)){
-                            return null;
-                          }else{
-                            return (object[propertyName])["name"];
-                          }
-                        }
-                        else if(propertyName == "due_date"){
-                          if((object[propertyName] == "") || (object[propertyName] == null)){
-                            return null;
-                          }else{
-                            return formatDueDate(object[propertyName]);
-                          }
-                        }
-                        else{
-                          return object[propertyName];
-                        }
-                    }
-},
-
 retrieveDataFromDataBase: function(slackTeamId, slackUserId, documentName){
                               return new Promise(function(resolve, reject){
                                   var axosoftAccessToken, axosoftBaseURL, slackAccessToken, axosoftUserId;
@@ -565,73 +515,6 @@ authorizeUserwithoutCollection:function(bot, message, returnedData){
                                   });
 },
 
-replaceAll: function(find, replacement, value){
-                var re = new RegExp(find, 'g');
-                return value.replace(re, replacement);
-},
-
-//TODO refactor this method
-formatAxoData: function(object){ 
-                  var returnDataObject = [];
-                  for (k in object) {
-                      if(k == "link" || k == "axosoftItemName" || k == "axosoftId"){
-                        continue;
-                      }
-                      else if (object[k] != null){
-                        if(k == "Description"){
-                            returnDataObject.push({
-                              title: k,
-                              value: object[k],
-                              short: false
-                            });
-                        }else if(k == "Parent"){
-                            var indexVal = object.link.indexOf("=")+1;
-
-                            String.prototype.replaceAt = function(index, character) {
-                                return this.substr(0, index) + character + this.substr(object.link.indexOf("&"));
-                            };
-                            var parentLink = object.link.replaceAt(indexVal, object[k].toString());
-
-                            returnDataObject.push({
-                              title: k,
-                              value: `<${parentLink} | ${object[k]}>`,
-                              short: true
-                            });
-                        }else if( k == "SubItems"){
-                          if(object[k] > 0){
-                              returnDataObject.push({
-                              title: k,
-                              value: object[k],
-                              short: true
-                            });
-                          }
-                          else{
-                            continue;
-                          }
-                        }else{
-                            returnDataObject.push({
-                              title: module.exports.replaceAll("_", " ", k),
-                              value: object[k],
-                              short: true
-                            });
-                        }
-                      }
-                      else{
-                        if(k == "Parent"){
-                          continue;
-                        }
-                        else{
-                            returnDataObject.push({
-                              title: module.exports.replaceAll("_", " ", k),
-                              value: "[None]",
-                              short: true
-                            });
-                        }
-                      }
-                  }
-                  return returnDataObject;
-},
-
 textBuilder: function(message, params){
                 return new Promise(function(resolve, reject){
                             var requestedKeyWord = function(msg){
@@ -639,7 +522,6 @@ textBuilder: function(message, params){
                               else return "";
                             };
                             var ofYourConditional = message.match.input.includes("my") ? 'of your ' : '';
-
                             var baseTxt = `I could not find any ${ofYourConditional}${requestedKeyWord(message.match[2])}${' ' + requestedKeyWord(message.match[3])} items`;
                 });
 },
@@ -701,6 +583,86 @@ getParamsFromQueryString: function(query){
                                 object[kvp[0]] = kvp[1];
                               });
                               return object;
+},
+
+formatAxosoftDataForSlack: function(object){
+                  var dataArray = [];
+                  var propertyName = null;
+                  var keysArray = Object.keys(object);
+                  keysArray.splice(keysArray.indexOf("description"), 1);
+                  keysArray.push("description");
+
+                  String.prototype.replaceAt = function(index, character) {
+                      return this.substr(0, index) + character.toString() + this.substr(index+1);
+                  }
+
+                  for(x=0; x < keysArray.length; x++){
+                      if(keysArray[x] == "link" || keysArray[x] == "id" || keysArray[x] == "number" || keysArray[x] == "name"){
+                        continue;
+                      }else if(typeof(object[keysArray[x]]) == "object"){ 
+                          if(keysArray[x] == "parent" && object[keysArray[x]].id == 0){
+                            continue;
+                          }else{
+                             dataArray.push({
+                                  title: module.exports.titleBuilder(keysArray[x]).hasOwnProperty("title") ? module.exports.titleBuilder(keysArray[x])["title"] : module.exports.titleBuilder(keysArray[x]),
+                                  value: ((object[keysArray[x]].hasOwnProperty("id")) && (object[keysArray[x]].id > 0)) ? `<${object.link.replaceAt( object.link.indexOf("=")+1, object.parent.id)} | ${object.parent.id}>`: `${object[keysArray[x]][Object.keys(object[keysArray[x]])[0]]}`,
+                                  short: true
+                              });
+                          }
+                      }else{
+                          dataArray.push({
+                              title: module.exports.titleBuilder(keysArray[x]).hasOwnProperty("title") ? module.exports.titleBuilder(keysArray[x])["title"] : module.exports.titleBuilder(keysArray[x]),
+                              value: object[keysArray[x]],
+                              short: (keysArray[x] == "description") ? false : true
+                          });
+                      }
+                  }
+                  return dataArray;
+},
+
+titleBuilder: function(name){
+                  var titles = [
+                    {value : "parent", title: "Parent"},
+                    {value : "name", title: "Project"},
+                    {value : "workflow_step", title: "Workflow Step"},
+                    {value : "assigned_to", title: "Assigned To"},
+                    {value : "priority", title: "Priority"},
+                    {value : "custom_fields", title: "Work Item Type"},
+                    {value : "due_date", title: "Due Date"},
+                    {value : "remaining_duration", title: "Remaining Estimate"},
+                    {value : "release", title: "Release"},
+                    {value : "subitems", title: "SubItems"},
+                    {value : "description", title: "Description"},
+                  ];
+
+                  var returnTitle =  titles.find(function(item){
+                      return name == item.value;
+                  });
+                  return (returnTitle != undefined) ? returnTitle : name.charAt(0).toUpperCase() + name.slice(1);
+},
+
+axosoftDataBuilder: function(baseUrl, data){
+                        var axosoftData = new Object();
+                        var propertyName = null;
+                        axosoftData.link = `${baseUrl}/viewitem?id=${data.id}&type=${data.item_type}&force_use_number=true/`;
+                        for(z=0; z < Object.keys(data).length; z++){
+                            propertyName = Object.keys(data)[z];
+                            if(data[propertyName] == null || data[propertyName] == ""){
+                              axosoftData[propertyName] = "";
+                            }else{
+                                if(data[propertyName].hasOwnProperty("name")){
+                                  axosoftData[propertyName] = (data[propertyName].name == null) ? "" : data[propertyName].name;
+                                }else if(propertyName == "description"){
+                                  var description = entities.decodeHTML(data[propertyName]);
+                                  axosoftData[propertyName] = striptags(description);
+                                }else if(propertyName == "due_date"){
+                                  axosoftData[propertyName] = module.exports.timeFormat(data[propertyName]);
+                                }else{
+                                  axosoftData[propertyName] = (data[propertyName] == null) ? "" : data[propertyName];
+                                }
+                            }
+                        }
+                        return axosoftData;
 },
 
 };

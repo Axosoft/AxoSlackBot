@@ -177,7 +177,7 @@ controller.hears('(get my|get) (.*)(items)(.*)',['direct_message,direct_mention,
 
 controller.hears('(.*)(axo)(d|f|t|i|[]{0})(\\s|[]{0})(\\d+)(.*)',['direct_message,direct_mention,mention'],function(bot,message) { 
       var channelId = message.channel;
-      var columns = "description,item_type,name,id,priority,due_date,workflow_step,remaining_duration.duration_text,assigned_to,release";
+      var columns = "name,id,priority,due_date,workflow_step,remaining_duration.duration_text,item_type,assigned_to,release,description";
       var formatDueDate = function(dueDate){
           if(dueDate == null)return '';
           else return '*Due Date:* ' + helper.timeFormat(dueDate);
@@ -230,32 +230,15 @@ controller.hears('(.*)(axo)(d|f|t|i|[]{0})(\\s|[]{0})(\\d+)(.*)',['direct_messag
                       if(response.data.length == 0){
                         helper.sendTextToSlack(slackToken, channelId, `I could not find item \`# ${message.match[5]}\``);
                       }else{
-                        var data = response.data[0];
-                        var axosoftData = {
-                            link: `${axoBaseUrl}/viewitem?id=${data.id}&type=${data.item_type}&force_use_number=true/`,
-                            axosoftItemName: data.name,
-                            Parent: helper.checkForProperty(data, "parent.id"), 
-                            Project: helper.checkForProperty(data, "project.name"),
-                            Workflow_Step: helper.checkForProperty(data, "workflow_step.name"),
-                            Assigned_To: helper.checkForProperty(data, "assigned_to"),
-                            Priority: helper.checkForProperty(data, "priority.name"),
-                            axosoftId: data.number,
-                            Work_Item_Type: helper.checkForProperty(data, "custom_fields.custom_1"),
-                            Due_Date: helper.checkForProperty(data, "due_date"), 
-                            Remaining_Estimate: helper.checkForProperty(data, "remaining_duration.duration_text"),
-                            Release: helper.checkForProperty(data, "release.name"),
-                            SubItems: helper.checkForProperty(data, "subitems.count"),
-                            Description: helper.checkForProperty(data, "description")
-                        };
-
+                        var axosoftData = helper.axosoftDataBuilder(axoBaseUrl, response.data[0]);
                         var params = {
                               token: slackToken,
                               channel:channelId,
                               mrkdwn: true,
                               attachments:JSON.stringify([{
                                   color: "#38B040",
-                                  text: `<${axosoftData.link}|${axosoftData.axosoftId}>: ${axosoftData.axosoftItemName}`,
-                                  fields: helper.formatAxoData(axosoftData),
+                                  text: `<${axosoftData.link}|${axosoftData.id}>: ${axosoftData.name}`,
+                                  fields: helper.formatAxosoftDataForSlack(axosoftData),
                                   mrkdwn_in:["text"]
                               }])
                         };
@@ -263,7 +246,7 @@ controller.hears('(.*)(axo)(d|f|t|i|[]{0})(\\s|[]{0})(\\d+)(.*)',['direct_messag
                       }
                   })
                   .catch(function(error){
-                    helper.sendTextToSlack(slackToken, channelId, reason);
+                    helper.sendTextToSlack(slackToken, channelId, error.message);
                   });
             })
             .catch(function(reason){
