@@ -509,6 +509,7 @@ paramsBuilder: function(axosoftUrl, axosoftToken, slackToken, message){
 
                         params.due_date = `[${today.toISOString()}=${today.addDays(14).toISOString()}]`;
                         params.filters = 'completion_date="1899-01-01"';
+                        params.sort_fields = 'due_date'
                       }
 
                       if(message.match[1] == 'get my'){
