@@ -41,7 +41,7 @@ formatText: function(body, message){
                 }else if(pageNumber>1){
                   return `${txt} items page 1 of ${pageNumber}`;
                 }else if(message.text.includes("closed")){
-                  return txt = txt + "items closed in the last 30 days]";
+                  return txt = txt + " [items closed in the last 30 days]";
                 }else{
                   return `${txt} items`
                 };
@@ -73,7 +73,7 @@ attachmentMaker: function (Body, axoBaseUrl, axosoftToken, myKeyWordExists){
                     return new Promise(function(resolve, reject){
                           var attachmentArrays = [];
                           var parentIds = [];
-                          var itemType, axosoftData;
+                          var axosoftData;
                           var indexOfitemsWithParent = [];
 
                           var formatDueDate = function(data){
@@ -93,37 +93,12 @@ attachmentMaker: function (Body, axoBaseUrl, axosoftToken, myKeyWordExists){
                           };
 
                           for (x = 0; x < Body.data.length; x++) {
-                                axosoftData = {
-                                    link: `${axoBaseUrl}/viewitem?id=${Body.data[x].id}&type=${Body.data[x].item_type}&force_use_number=true/`,
-                                    assignedTo: (function(){
-                                      if(Body.data[x].assigned_to.name != "" ){
-                                        if(myKeyWordExists){
-                                          return "";
-                                        }else{
-                                          return Body.data[x].assigned_to.name;
-                                        }
-                                      }else{
-                                        return "[None]";
-                                      }
-                                    }).call(),
-                                    parent: Body.data[x].parent.id,
-                                    axosoftItemName: Body.data[x].name,
-                                    workFlowStep: Body.data[x].workflow_step.name,
-                                    axosoftId: Body.data[x].number, 
-                                    itemType: Body.data[x].item_type,
-                                    workItemType: (function(){
-                                      if(Body.data[x].hasOwnProperty("custom_fields")){
-                                        return Body.data[x].custom_fields.custom_1;
-                                      }else{
-                                        return "[None]";
-                                      }
-                                    }).call()
-                                };
-
+                                var axosoftData = module.exports.axosoftDataBuilder(axoBaseUrl, Body.data[x]);
+                                if(myKeyWordExists)axosoftData.assigned_to = "";
                                 const extraPromises = [];
                                 const itemsWithParent = [];
-                                
-                                if (axosoftData.parent > 0) {
+
+                                if (axosoftData.parent.id > 0) {
                                   if((parentIds.indexOf(Body.data[x].parent.id) == -1)){
                                       parentIds.push(Body.data[x].parent.id);
                                   }
@@ -134,13 +109,13 @@ attachmentMaker: function (Body, axoBaseUrl, axosoftToken, myKeyWordExists){
                                       axosoftData.completionDate = Body.data[x].completion_date;
                                       attachmentArrays.push({
                                         color: "#38B040",
-                                        text: `<${axosoftData.link}| ${axosoftData.axosoftId}> ${axosoftData.workItemType}  *${axosoftData.axosoftItemName}* \n ${axosoftData.assignedTo}  \`${axosoftData.workFlowStep}\` ${formatCompletionDate(axosoftData.completionDate)}`,
+                                        text: `<${axosoftData.link}| ${axosoftData.number}> ${axosoftData.custom_fields.custom_1}  *${axosoftData.name}* \n ${axosoftData.assigned_to}  \`${axosoftData.workflow_step}\` ${formatCompletionDate(axosoftData.completionDate)}`,
                                         mrkdwn_in:["text"]
                                       });
                                   }else{
                                       attachmentArrays.push({
                                         color: "#38B040",
-                                        text: `<${axosoftData.link}| ${axosoftData.axosoftId}> ${axosoftData.workItemType}  *${axosoftData.axosoftItemName}* \n ${axosoftData.assignedTo}  \`${axosoftData.workFlowStep}\` ${formatDueDate(Body.data[x])}`,
+                                        text: `<${axosoftData.link}| ${axosoftData.number}> ${axosoftData.custom_fields.custom_1}  *${axosoftData.name}* \n ${axosoftData.assigned_to}  \`${axosoftData.workflow_step}\` ${formatDueDate(Body.data[x])}`,
                                         mrkdwn_in:["text"]
                                       });
                                   }
@@ -149,51 +124,26 @@ attachmentMaker: function (Body, axoBaseUrl, axosoftToken, myKeyWordExists){
 
                         module.exports.getParentName(parentIds, axoBaseUrl, axosoftToken)
                         .then(function(parentDictionary){
-                            for(z=0; z < itemsWithParent.length; z++){
-                              itemsWithParent[z].parent_name = parentDictionary[itemsWithParent[z].parent.id];
-                              itemsWithParent[z].parent_link = `${axoBaseUrl}/viewitem?id=${itemsWithParent[z].parent.id}&type=${itemsWithParent[z].item_type}&force_use_number=true/`;
-                              var data = {
-                                  link: `${axoBaseUrl}/viewitem?id=${itemsWithParent[z].id}&type=${itemsWithParent[z].item_type}&force_use_number=true/`,
-                                  parentLink: itemsWithParent[z].parent_link,
-                                  assignedTo: (function(){
-                                    if(itemsWithParent[z].assigned_to.name != ""){
-                                      if(myKeyWordExists){
-                                        return "";
-                                      }else{
-                                        return itemsWithParent[z].assigned_to.name;
-                                      }
-                                    }else{
-                                      return "[None]";
-                                    }
-                                  }).call(),
-                                  parent: itemsWithParent[z].parent.id,
-                                  parentName: itemsWithParent[z].parent_name,
-                                  axosoftItemName: itemsWithParent[z].name,
-                                  workFlowStep: itemsWithParent[z].workflow_step.name,
-                                  axosoftId: itemsWithParent[z].number, 
-                                  itemType: itemsWithParent[z].item_type,
-                                  workItemType: (function(){
-                                    if(itemsWithParent[z].hasOwnProperty("custom_fields")){
-                                      return itemsWithParent[z].custom_fields.custom_1;
-                                    }else{
-                                      return "[None]";
-                                    }
-                                  }).call()
-                              };
+                            for(e=0; e < itemsWithParent.length; e++){
+                              var item = itemsWithParent[e];
+                              item.parent_name = parentDictionary[item.parent.id];
+                              item.parent_link = `${axoBaseUrl}/viewitem?id=${item.parent.id}&type=${item.item_type}&force_use_number=true/`;
+                              var data = module.exports.axosoftDataBuilder(axoBaseUrl, item);
+                              if(myKeyWordExists)data.assigned_to = "";
 
-                              if(itemsWithParent[z].hasOwnProperty("completion_date")){
-                                  data.completionDate = itemsWithParent[z].completion_date;
-                                  attachmentArrays.splice(indexOfitemsWithParent[z],0,{
+                              if(item.hasOwnProperty("completion_date")){
+                                  data.completionDate = item.completion_date;
+                                  attachmentArrays.splice(indexOfitemsWithParent[e],0,{
                                       color: "#38B040",
-                                      text: `<${data.link}| ${data.axosoftId}> ${data.workItemType}  *${data.axosoftItemName}* \n ${data.assignedTo}  \`${data.workFlowStep}\` ${formatCompletionDate(data.completionDate)} \nParent ${data.parent}: <${data.parentLink}| ${data.parentName}>`,
+                                      text: `<${data.link}| ${data.number}> ${data.custom_fields.custom_1}  *${data.name}* \n ${data.assigned_to}  \`${data.workflow_step}\` ${formatCompletionDate(data.completionDate)} \nParent ${data.parent.id}: <${data.parent_link}| ${data.parent_name}>`,
                                       mrkdwn_in:["text"]
                                   });
                               }else{
-                                  attachmentArrays.splice(indexOfitemsWithParent[z],0,{
+                                  attachmentArrays.splice(indexOfitemsWithParent[e],0,{
                                     color: "#38B040",
-                                    text: `<${data.link}| ${data.axosoftId}> ${data.workItemType}  *${data.axosoftItemName}* \n ${data.assignedTo}  \`${data.workFlowStep}\` ${formatDueDate(itemsWithParent[z])} \nParent ${data.parent}: <${data.parentLink}| ${data.parentName}>`,
+                                    text: `<${data.link}| ${data.number}> ${data.custom_fields.custom_1}  *${data.name}* \n ${data.assigned_to}  \`${data.workflow_step}\` ${formatDueDate(item)} \nParent ${data.parent.id}: <${data.parent_link}| ${data.parent_name}>`,
                                     mrkdwn_in:["text"]
-                                  }); 
+                                  });
                               }
                             }
                             resolve(attachmentArrays);
@@ -563,7 +513,7 @@ paramsBuilder: function(axosoftUrl, axosoftToken, slackToken, message){
                       if(message.match[1] == 'get my'){
                           module.exports.getUserIdAxosoft(axosoftUrl, axosoftToken, slackToken, message)
                             .then(function(userIdAxo){
-                                params.filters = `assigned_to.id=${userIdAxo}`;
+                                params.filters = params.filters + `,assigned_to.id=${userIdAxo}`;
                                 return resolve(params);
                             }).catch(function(reason){
                                 return reject(reason);
@@ -640,7 +590,7 @@ titleBuilder: function(name){
                                   return value.replace(re, replacement);
                   };
 
-                  var returnTitle =  titles.find(function(item){
+                  var returnTitle = titles.find(function(item){
                       return name == item.value;
                   });
                   return (returnTitle != undefined) ? returnTitle : name.charAt(0).toUpperCase() + replaceAll("_", " ", name.slice(1));
