@@ -137,7 +137,7 @@ controller.hears('(get my|get) (.*)(items)(.*)',['direct_message,direct_mention,
                   nodeAxo.promisify(nodeAxo.axosoftApi.Features.get, argsArray) 
                   .then(function(response){
                     if(response.data.length == 0){
-                      helper.textBuilder(message, params)
+                      helper.textBuilder(message)
                       .then(function(txt){
                           helper.sendTextToSlack(slackToken, channelId, txt);
                       });

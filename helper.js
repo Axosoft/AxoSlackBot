@@ -465,14 +465,15 @@ authorizeUserwithoutCollection:function(bot, message, returnedData){
                                   });
 },
 
-textBuilder: function(message, params){
+textBuilder: function(message){
                 return new Promise(function(resolve, reject){
                             var requestedKeyWord = function(msg){
                               if(msg != "")return msg;
                               else return "";
                             };
                             var ofYourConditional = message.match.input.includes("my") ? 'of your ' : '';
-                            var baseTxt = `I could not find any ${ofYourConditional}${requestedKeyWord(message.match[2])}${' ' + requestedKeyWord(message.match[3])} items`;
+                            var baseTxt = `I could not find any ${ofYourConditional}${requestedKeyWord(message.match[2])}${' ' + requestedKeyWord(message.match[3])}`;
+                            resolve(baseTxt);
                 });
 },
 
