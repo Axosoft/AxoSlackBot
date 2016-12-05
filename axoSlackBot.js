@@ -147,7 +147,11 @@ controller.hears('(get my|get) (.*)(items)(.*)',['direct_message,direct_mention,
                   })
                   .catch(function(reason){
                     console.log(reason);
-                    helper.sendTextToSlack(slackToken, channelId, reason);
+                    if(reason/statusCode == 401){
+                      //TODO not authenticated properly, try to authenticate
+                    }else{
+                      //TODO maybe sending text to slack.... 
+                    }
                   });
              })
              .catch(function(reason){
@@ -210,7 +214,7 @@ controller.hears('(.*)(axo)(d|f|t|i|[]{0})(\\s|[]{0})(\\d+)(.*)',['direct_messag
       else if (message.match[3]=='i') {
         item_type = 'incidents';
       }
-
+    
        helper.checkAxosoftDataForUser(message.team, message.user)
        .then(function(axosoftToken){
             helper.retrieveDataFromDataBase(message.team, message.user,"teams")
@@ -225,7 +229,7 @@ controller.hears('(.*)(axo)(d|f|t|i|[]{0})(\\s|[]{0})(\\d+)(.*)',['direct_messag
                   }];
 
                   var nodeAxo = new nodeAxosoft(axoBaseUrl, args[0].access_token);
-                  nodeAxo.promisify(nodeAxo.axosoftApi.Features.get, args)
+                  nodeAxo.promisify(helper.axosoftApiMethod(nodeAxo, item_type).get, args)
                   .then(function(response){
                       if(response.data.length == 0){
                         helper.sendTextToSlack(slackToken, channelId, `I could not find item \`# ${message.match[5]}\``);
@@ -237,7 +241,7 @@ controller.hears('(.*)(axo)(d|f|t|i|[]{0})(\\s|[]{0})(\\d+)(.*)',['direct_messag
                               mrkdwn: true,
                               attachments:JSON.stringify([{
                                   color: "#38B040",
-                                  text: `<${axosoftData.link}|${axosoftData.id}>: ${axosoftData.name}`,
+                                  text: `<${axosoftData.link}|${axosoftData.number}>: ${axosoftData.name}`,
                                   fields: helper.formatAxosoftDataForSlack(axosoftData),
                                   mrkdwn_in:["text"]
                               }])

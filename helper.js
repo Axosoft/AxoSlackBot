@@ -223,6 +223,8 @@ getUserIdAxosoft: function(axoBaseUrl, axoAccessToken){
                             module.exports.makeRequest('GET', axoBaseUrl + '/api/v5/me/', params, function(error, response, body){
                                 if(!error && response.statusCode == 200){
                                    resolve(JSON.parse(body).data.id);
+                                }else{
+                                  //TODO in case of error!
                                 }
                             });
                       });
@@ -620,6 +622,16 @@ axosoftDataBuilder: function(baseUrl, data){
                             }
                         }
                         return axosoftData;
+},
+
+axosoftApiMethod: function(Axo, itemType){
+                      if(itemType == "tasks"){
+                        return Axo.axosoftApi.Tasks;
+                      }else if(itemType == "incidents"){
+                        return Axo.axosoftApi.Incidents;
+                      }else{
+                        return Axo.axosoftApi.Features;
+                      }
 },
 
 };
