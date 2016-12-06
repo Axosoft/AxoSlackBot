@@ -4,6 +4,8 @@ const MongoClient = require('mongodb').MongoClient;
 const qs = require('querystring');
 const striptags = require('striptags');
 const urlEncode = require('urlencode');
+const nodeAxosoft = require('./nodeAxosoft.js');
+const entities = require("entities");
 
 module.exports = {
 makeRequest: function(method, URL, params, callback){
@@ -39,7 +41,7 @@ formatText: function(body, message){
                 }else if(pageNumber>1){
                   return `${txt} items page 1 of ${pageNumber}`;
                 }else if(message.text.includes("closed")){
-                  return txt = txt + "items closed in the last 30 days]";
+                  return txt = txt + " [items closed in the last 30 days]";
                 }else{
                   return `${txt} items`
                 };
@@ -71,7 +73,7 @@ attachmentMaker: function (Body, axoBaseUrl, axosoftToken, myKeyWordExists){
                     return new Promise(function(resolve, reject){
                           var attachmentArrays = [];
                           var parentIds = [];
-                          var itemType, axosoftData;
+                          var axosoftData;
                           var indexOfitemsWithParent = [];
 
                           var formatDueDate = function(data){
@@ -91,37 +93,12 @@ attachmentMaker: function (Body, axoBaseUrl, axosoftToken, myKeyWordExists){
                           };
 
                           for (x = 0; x < Body.data.length; x++) {
-                                axosoftData = {
-                                    link: `${axoBaseUrl}/viewitem?id=${Body.data[x].id}&type=${Body.data[x].item_type}&force_use_number=true/`,
-                                    assignedTo: (function(){
-                                      if(Body.data[x].assigned_to.name != "" ){
-                                        if(myKeyWordExists){
-                                          return "";
-                                        }else{
-                                          return Body.data[x].assigned_to.name;
-                                        }
-                                      }else{
-                                        return "[None]";
-                                      }
-                                    }).call(),
-                                    parent: Body.data[x].parent.id,
-                                    axosoftItemName: Body.data[x].name,
-                                    workFlowStep: Body.data[x].workflow_step.name,
-                                    axosoftId: Body.data[x].number, 
-                                    itemType: Body.data[x].item_type,
-                                    workItemType: (function(){
-                                      if(Body.data[x].hasOwnProperty("custom_fields")){
-                                        return Body.data[x].custom_fields.custom_1;
-                                      }else{
-                                        return "[None]";
-                                      }
-                                    }).call()
-                                };
-
+                                var axosoftData = module.exports.axosoftDataBuilder(axoBaseUrl, Body.data[x]);
+                                if(myKeyWordExists)axosoftData.assigned_to = "";
                                 const extraPromises = [];
                                 const itemsWithParent = [];
-                                
-                                if (axosoftData.parent > 0) {
+
+                                if (axosoftData.parent.id > 0) {
                                   if((parentIds.indexOf(Body.data[x].parent.id) == -1)){
                                       parentIds.push(Body.data[x].parent.id);
                                   }
@@ -132,13 +109,13 @@ attachmentMaker: function (Body, axoBaseUrl, axosoftToken, myKeyWordExists){
                                       axosoftData.completionDate = Body.data[x].completion_date;
                                       attachmentArrays.push({
                                         color: "#38B040",
-                                        text: `<${axosoftData.link}| ${axosoftData.axosoftId}> ${axosoftData.workItemType}  *${axosoftData.axosoftItemName}* \n ${axosoftData.assignedTo}  \`${axosoftData.workFlowStep}\` ${formatCompletionDate(axosoftData.completionDate)}`,
+                                        text: `<${axosoftData.link}| ${axosoftData.number}> ${axosoftData.custom_fields.custom_1}  *${axosoftData.name}* \n ${axosoftData.assigned_to}  \`${axosoftData.workflow_step}\` ${formatCompletionDate(axosoftData.completionDate)}`,
                                         mrkdwn_in:["text"]
                                       });
                                   }else{
                                       attachmentArrays.push({
                                         color: "#38B040",
-                                        text: `<${axosoftData.link}| ${axosoftData.axosoftId}> ${axosoftData.workItemType}  *${axosoftData.axosoftItemName}* \n ${axosoftData.assignedTo}  \`${axosoftData.workFlowStep}\` ${formatDueDate(Body.data[x])}`,
+                                        text: `<${axosoftData.link}| ${axosoftData.number}> ${axosoftData.custom_fields.custom_1}  *${axosoftData.name}* \n ${axosoftData.assigned_to}  \`${axosoftData.workflow_step}\` ${formatDueDate(Body.data[x])}`,
                                         mrkdwn_in:["text"]
                                       });
                                   }
@@ -147,51 +124,26 @@ attachmentMaker: function (Body, axoBaseUrl, axosoftToken, myKeyWordExists){
 
                         module.exports.getParentName(parentIds, axoBaseUrl, axosoftToken)
                         .then(function(parentDictionary){
-                            for(z=0; z < itemsWithParent.length; z++){
-                              itemsWithParent[z].parent_name = parentDictionary[itemsWithParent[z].parent.id];
-                              itemsWithParent[z].parent_link = `${axoBaseUrl}/viewitem?id=${itemsWithParent[z].parent.id}&type=${itemsWithParent[z].item_type}&force_use_number=true/`;
-                              var data = {
-                                  link: `${axoBaseUrl}/viewitem?id=${itemsWithParent[z].id}&type=${itemsWithParent[z].item_type}&force_use_number=true/`,
-                                  parentLink: itemsWithParent[z].parent_link,
-                                  assignedTo: (function(){
-                                    if(itemsWithParent[z].assigned_to.name != ""){
-                                      if(myKeyWordExists){
-                                        return "";
-                                      }else{
-                                        return itemsWithParent[z].assigned_to.name;
-                                      }
-                                    }else{
-                                      return "[None]";
-                                    }
-                                  }).call(),
-                                  parent: itemsWithParent[z].parent.id,
-                                  parentName: itemsWithParent[z].parent_name,
-                                  axosoftItemName: itemsWithParent[z].name,
-                                  workFlowStep: itemsWithParent[z].workflow_step.name,
-                                  axosoftId: itemsWithParent[z].number, 
-                                  itemType: itemsWithParent[z].item_type,
-                                  workItemType: (function(){
-                                    if(itemsWithParent[z].hasOwnProperty("custom_fields")){
-                                      return itemsWithParent[z].custom_fields.custom_1;
-                                    }else{
-                                      return "[None]";
-                                    }
-                                  }).call()
-                              };
+                            for(e=0; e < itemsWithParent.length; e++){
+                              var item = itemsWithParent[e];
+                              item.parent_name = parentDictionary[item.parent.id];
+                              item.parent_link = `${axoBaseUrl}/viewitem?id=${item.parent.id}&type=${item.item_type}&force_use_number=true/`;
+                              var data = module.exports.axosoftDataBuilder(axoBaseUrl, item);
+                              if(myKeyWordExists)data.assigned_to = "";
 
-                              if(itemsWithParent[z].hasOwnProperty("completion_date")){
-                                  data.completionDate = itemsWithParent[z].completion_date;
-                                  attachmentArrays.splice(indexOfitemsWithParent[z],0,{
+                              if(item.hasOwnProperty("completion_date")){
+                                  data.completionDate = item.completion_date;
+                                  attachmentArrays.splice(indexOfitemsWithParent[e],0,{
                                       color: "#38B040",
-                                      text: `<${data.link}| ${data.axosoftId}> ${data.workItemType}  *${data.axosoftItemName}* \n ${data.assignedTo}  \`${data.workFlowStep}\` ${formatCompletionDate(data.completionDate)} \nParent ${data.parent}: <${data.parentLink}| ${data.parentName}>`,
+                                      text: `<${data.link}| ${data.number}> ${data.custom_fields.custom_1}  *${data.name}* \n ${data.assigned_to}  \`${data.workflow_step}\` ${formatCompletionDate(data.completionDate)} \nParent ${data.parent.id}: <${data.parent_link}| ${data.parent_name}>`,
                                       mrkdwn_in:["text"]
                                   });
                               }else{
-                                  attachmentArrays.splice(indexOfitemsWithParent[z],0,{
+                                  attachmentArrays.splice(indexOfitemsWithParent[e],0,{
                                     color: "#38B040",
-                                    text: `<${data.link}| ${data.axosoftId}> ${data.workItemType}  *${data.axosoftItemName}* \n ${data.assignedTo}  \`${data.workFlowStep}\` ${formatDueDate(itemsWithParent[z])} \nParent ${data.parent}: <${data.parentLink}| ${data.parentName}>`,
+                                    text: `<${data.link}| ${data.number}> ${data.custom_fields.custom_1}  *${data.name}* \n ${data.assigned_to}  \`${data.workflow_step}\` ${formatDueDate(item)} \nParent ${data.parent.id}: <${data.parent_link}| ${data.parent_name}>`,
                                     mrkdwn_in:["text"]
-                                  }); 
+                                  });
                               }
                             }
                             resolve(attachmentArrays);
@@ -205,22 +157,27 @@ attachmentMaker: function (Body, axoBaseUrl, axosoftToken, myKeyWordExists){
 getParentName: function(parentIds, axoBaseUrl, axosoftToken){
                   var parentDictionary = {}; 
                   return new Promise(function(resolve, reject){
-                      var params = {
+                      var args = [{
                         access_token: axosoftToken,
                         filters: `id=in[${parentIds}]`,
                         columns: "name",
-                      };
-                      module.exports.makeRequest("GET", `${axoBaseUrl}/api/v5/features`, params, function(error, response, body){
-                        if(!error && response.statusCode == 200){
-                            var BODY = JSON.parse(body);
-                            if(BODY.data.length != 0){
-                              for(x=0; x<BODY.data.length; x++){
-                                parentDictionary[BODY.data[x].id] = BODY.data[x].name;
-                              }
-                              resolve(parentDictionary);
+                      }];
+                      var nodeAxo = new nodeAxosoft(axoBaseUrl, args[0].access_token);
+                      nodeAxo.promisify(nodeAxo.axosoftApi.Features.get, args)
+                      .then(function(response){
+                        if(response.data.length != 0){
+                            for(x=0; x<response.data.length; x++){
+                              parentDictionary[response.data[x].id] = response.data[x].name;
                             }
+                            resolve(parentDictionary);
+                        }else{
+                          console.log("helper.getParentName data.length == 0");
                         }
                       })
+                      .catch(function(reason){
+                        console.log(reason);
+                        reject(reason);
+                      });
                   });
 },
 
@@ -266,6 +223,8 @@ getUserIdAxosoft: function(axoBaseUrl, axoAccessToken){
                             module.exports.makeRequest('GET', axoBaseUrl + '/api/v5/me/', params, function(error, response, body){
                                 if(!error && response.statusCode == 200){
                                    resolve(JSON.parse(body).data.id);
+                                }else{
+                                  reject(response);
                                 }
                             });
                       });
@@ -276,9 +235,9 @@ saveAxosoftAccessToken: function(userId, teamId, accessToken){
                               if(err) return console.log(err);
                               database.collection('users').findAndModify(
                               {id: userId, team_id: teamId}, 
-                              [],  
+                              [],
                               {$set: {axosoftAccessToken: accessToken}}, 
-                              {}, 
+                              {},
                               function(err, object) {
                                   if (err){
                                       console.warn(err.message); 
@@ -358,56 +317,6 @@ checkAxosoftDataForUser: function(slackTeamId, slackUserId){
                                 });
                             });
                             return Promise.all([one, two]);
-},
-
-checkForProperty: function(object, propertyName){
-                      var formatDueDate = function(dueDate){
-                          if(dueDate == null)return '';
-                          else return module.exports.timeFormat(dueDate);
-                      };
-
-                    if(propertyName.includes(".")){
-                        var afterDotPropertyName = propertyName.substr(propertyName.indexOf('.') + 1);
-                        var beforeDotPropertyName = propertyName.substr(0, propertyName.indexOf('.'));
-
-                        if(!object.hasOwnProperty(beforeDotPropertyName)){
-                          return null;
-                        }
-
-                        if((object[beforeDotPropertyName])[afterDotPropertyName] == null || (object[beforeDotPropertyName])[afterDotPropertyName] == ""){
-                          return null;
-                        }
-                        else{
-                          return (object[beforeDotPropertyName])[afterDotPropertyName];
-                        }
-                    }
-                    else{
-                      if(!object.hasOwnProperty(propertyName)){
-                          return null;
-                        }else if(propertyName == "description"){
-                          if(object[propertyName] == ""){
-                            return null;
-                          }else{
-                            return striptags(object[propertyName]);
-                          }
-                        }else if(propertyName == "assigned_to"){
-                          if(((object[propertyName])["name"] == "") || ((object[propertyName])["name"] == null)){
-                            return null;
-                          }else{
-                            return (object[propertyName])["name"];
-                          }
-                        }
-                        else if(propertyName == "due_date"){
-                          if((object[propertyName] == "") || (object[propertyName] == null)){
-                            return null;
-                          }else{
-                            return formatDueDate(object[propertyName]);
-                          }
-                        }
-                        else{
-                          return object[propertyName];
-                        }
-                    }
 },
 
 retrieveDataFromDataBase: function(slackTeamId, slackUserId, documentName){
@@ -538,7 +447,7 @@ authorizeUserwithoutCollection:function(bot, message, returnedData){
                                                   })
                                                   .catch(function(reason){
                                                     //can not get slackToken from DB
-                                                    module.exports.sendTextToSlack(slackToken, message.channel, "There was an authorizing your account"); 
+                                                    module.exports.sendTextToSlack(slackToken, message.channel, "There was an error authorizing your account"); 
                                                   })
                                               }
                                               else{
@@ -558,82 +467,15 @@ authorizeUserwithoutCollection:function(bot, message, returnedData){
                                   });
 },
 
-replaceAll: function(find, replacement, value){
-                var re = new RegExp(find, 'g');
-                return value.replace(re, replacement);
-},
-
-//TODO refactor this method
-formatAxoData: function(object){ 
-                  var returnDataObject = [];
-                  for (k in object) {
-                      if(k == "link" || k == "axosoftItemName" || k == "axosoftId"){
-                        continue;
-                      }
-                      else if (object[k] != null){
-                        if(k == "Description"){
-                            returnDataObject.push({
-                              title: k,
-                              value: object[k],
-                              short: false
-                            });
-                        }else if(k == "Parent"){
-                            var indexVal = object.link.indexOf("=")+1;
-
-                            String.prototype.replaceAt = function(index, character) {
-                                return this.substr(0, index) + character + this.substr(object.link.indexOf("&"));
-                            };
-                            var parentLink = object.link.replaceAt(indexVal, object[k].toString());
-
-                            returnDataObject.push({
-                              title: k,
-                              value: `<${parentLink} | ${object[k]}>`,
-                              short: true
-                            });
-                        }else if( k == "SubItems"){
-                          if(object[k] > 0){
-                              returnDataObject.push({
-                              title: k,
-                              value: object[k],
-                              short: true
-                            });
-                          }
-                          else{
-                            continue;
-                          }
-                        }else{
-                            returnDataObject.push({
-                              title: module.exports.replaceAll("_", " ", k),
-                              value: object[k],
-                              short: true
-                            });
-                        }
-                      }
-                      else{
-                        if(k == "Parent"){
-                          continue;
-                        }
-                        else{
-                            returnDataObject.push({
-                              title: module.exports.replaceAll("_", " ", k),
-                              value: "[None]",
-                              short: true
-                            });
-                        }
-                      }
-                  }
-                  return returnDataObject;
-},
-
-textBuilder: function(message, params){
+textBuilder: function(message){
                 return new Promise(function(resolve, reject){
                             var requestedKeyWord = function(msg){
                               if(msg != "")return msg;
                               else return "";
                             };
                             var ofYourConditional = message.match.input.includes("my") ? 'of your ' : '';
-
-                            var baseTxt = `I could not find any ${ofYourConditional}${requestedKeyWord(message.match[2])}${' ' + requestedKeyWord(message.match[3])} items`;
+                            var baseTxt = `I could not find any ${ofYourConditional}${requestedKeyWord(message.match[2])}${' ' + requestedKeyWord(message.match[3])}`;
+                            resolve(baseTxt);
                 });
 },
 
@@ -669,12 +511,13 @@ paramsBuilder: function(axosoftUrl, axosoftToken, slackToken, message){
 
                         params.due_date = `[${today.toISOString()}=${today.addDays(14).toISOString()}]`;
                         params.filters = 'completion_date="1899-01-01"';
+                        params.sort_fields = 'due_date'
                       }
 
                       if(message.match[1] == 'get my'){
                           module.exports.getUserIdAxosoft(axosoftUrl, axosoftToken, slackToken, message)
                             .then(function(userIdAxo){
-                                params.filters = `assigned_to.id=${userIdAxo}`;
+                                params.filters = params.filters + `,assigned_to.id=${userIdAxo}`;
                                 return resolve(params);
                             }).catch(function(reason){
                                 return reject(reason);
@@ -684,6 +527,111 @@ paramsBuilder: function(axosoftUrl, axosoftToken, slackToken, message){
                         return resolve(params);
                       }
                   });
-}
+},
+
+getParamsFromQueryString: function(query){
+                              var object = new Object();
+                              var params = query.state.split("&");
+                              params.forEach(function(param) {
+                                var kvp = param.split("=");
+                                object[kvp[0]] = kvp[1];
+                              });
+                              return object;
+},
+
+formatAxosoftDataForSlack: function(object){
+                  var dataArray = [];
+                  var propertyName = null;
+                  var keysArray = Object.keys(object);
+                  keysArray.splice(keysArray.indexOf("description"), 1);
+                  keysArray.push("description");
+
+                  String.prototype.replaceAt = function(index, character) {
+                      return this.substr(0, index) + character.toString() + this.substr(index+1);
+                  }
+
+                  for(x=0; x < keysArray.length; x++){
+                      if(keysArray[x] == "link" || keysArray[x] == "id" || keysArray[x] == "number" || keysArray[x] == "name"){
+                        continue;
+                      }else if(typeof(object[keysArray[x]]) == "object"){ 
+                          if(keysArray[x] == "parent" && object[keysArray[x]].id == 0){
+                            continue;
+                          }else{
+                             dataArray.push({
+                                  title: module.exports.titleBuilder(keysArray[x]).hasOwnProperty("title") ? module.exports.titleBuilder(keysArray[x])["title"] : module.exports.titleBuilder(keysArray[x]),
+                                  value: ((object[keysArray[x]].hasOwnProperty("id")) && (object[keysArray[x]].id > 0)) ? `<${object.link.replaceAt( object.link.indexOf("=")+1, object.parent.id)} | ${object.parent.id}>`: `${object[keysArray[x]][Object.keys(object[keysArray[x]])[0]]}`,
+                                  short: true
+                              });
+                          }
+                      }else{
+                          dataArray.push({
+                              title: module.exports.titleBuilder(keysArray[x]).hasOwnProperty("title") ? module.exports.titleBuilder(keysArray[x])["title"] : module.exports.titleBuilder(keysArray[x]),
+                              value: object[keysArray[x]],
+                              short: (keysArray[x] == "description") ? false : true
+                          });
+                      }
+                  }
+                  return dataArray;
+},
+
+titleBuilder: function(name){
+                  var titles = [
+                    {value : "parent", title: "Parent"},
+                    {value : "name", title: "Project"},
+                    {value : "workflow_step", title: "Workflow Step"},
+                    {value : "assigned_to", title: "Assigned To"},
+                    {value : "priority", title: "Priority"},
+                    {value : "custom_fields", title: "Work Item Type"},
+                    {value : "due_date", title: "Due Date"},
+                    {value : "remaining_duration", title: "Remaining Estimate"},
+                    {value : "release", title: "Release"},
+                    {value : "subitems", title: "SubItems"},
+                    {value : "description", title: "Description"},
+                  ];
+
+                  var replaceAll =  function(find, replacement, value){
+                                  var re = new RegExp(find, 'g');
+                                  return value.replace(re, replacement);
+                  };
+
+                  var returnTitle = titles.find(function(item){
+                      return name == item.value;
+                  });
+                  return (returnTitle != undefined) ? returnTitle : name.charAt(0).toUpperCase() + replaceAll("_", " ", name.slice(1));
+},
+
+axosoftDataBuilder: function(baseUrl, data){
+                        var axosoftData = new Object();
+                        var propertyName = null;
+                        axosoftData.link = `${baseUrl}/viewitem?id=${data.id}&type=${data.item_type}&force_use_number=true/`;
+                        for(z=0; z < Object.keys(data).length; z++){
+                            propertyName = Object.keys(data)[z];
+                            if(data[propertyName] == null || data[propertyName] == ""){
+                              axosoftData[propertyName] = "";
+                            }else{
+                                if(data[propertyName].hasOwnProperty("name")){
+                                  axosoftData[propertyName] = (data[propertyName].name == null) ? "" : data[propertyName].name;
+                                }else if(propertyName == "description"){
+                                  var description = entities.decodeHTML(data[propertyName]);
+                                  axosoftData[propertyName] = striptags(description);
+                                }else if(propertyName == "due_date"){
+                                  axosoftData[propertyName] = module.exports.timeFormat(data[propertyName]);
+                                }else{
+                                  axosoftData[propertyName] = (data[propertyName] == null) ? "" : data[propertyName];
+                                }
+                            }
+                        }
+                        return axosoftData;
+},
+
+axosoftApiMethod: function(Axo, itemType){
+                      if(itemType == "tasks"){
+                        return Axo.axosoftApi.Tasks;
+                      }else if(itemType == "incidents"){
+                        return Axo.axosoftApi.Incidents;
+                      }else{
+                        return Axo.axosoftApi.Features;
+                      }
+},
 
 };
