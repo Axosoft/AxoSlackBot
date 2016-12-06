@@ -147,15 +147,16 @@ controller.hears('(get my|get) (.*)(items)(.*)',['direct_message,direct_mention,
                   })
                   .catch(function(reason){
                     console.log(reason);
-                    if(reason/statusCode == 401){
-                      //TODO not authenticated properly, try to authenticate
-                    }else{
-                      //TODO maybe sending text to slack.... 
+                    if(reason.statusCode == 401){ 
+                       helper.authorizeUser(bot,message);
                     }
                   });
              })
              .catch(function(reason){
                console.log(reason);
+               if(reason.statusCode == 401){ 
+                 helper.authorizeUser(bot,message);
+               }
              });
             })
           .catch(function(reason){

@@ -224,7 +224,7 @@ getUserIdAxosoft: function(axoBaseUrl, axoAccessToken){
                                 if(!error && response.statusCode == 200){
                                    resolve(JSON.parse(body).data.id);
                                 }else{
-                                  //TODO in case of error!
+                                  reject(response);
                                 }
                             });
                       });
@@ -235,9 +235,9 @@ saveAxosoftAccessToken: function(userId, teamId, accessToken){
                               if(err) return console.log(err);
                               database.collection('users').findAndModify(
                               {id: userId, team_id: teamId}, 
-                              [],  
+                              [],
                               {$set: {axosoftAccessToken: accessToken}}, 
-                              {}, 
+                              {},
                               function(err, object) {
                                   if (err){
                                       console.warn(err.message); 
@@ -447,7 +447,7 @@ authorizeUserwithoutCollection:function(bot, message, returnedData){
                                                   })
                                                   .catch(function(reason){
                                                     //can not get slackToken from DB
-                                                    module.exports.sendTextToSlack(slackToken, message.channel, "There was an authorizing your account"); 
+                                                    module.exports.sendTextToSlack(slackToken, message.channel, "There was an error authorizing your account"); 
                                                   })
                                               }
                                               else{
