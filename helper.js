@@ -105,17 +105,18 @@ attachmentMaker: function (Body, axoBaseUrl, axosoftToken, myKeyWordExists){
                                   indexOfitemsWithParent.push(x);
                                   itemsWithParent.push(Body.data[x]);
                                 }else{
+                                  var custom_1 = (axosoftData.custom_fields && axosoftData.custom_fields.custom_1) || '';
                                   if(Body.data[x].hasOwnProperty("completion_date")){
                                       axosoftData.completionDate = Body.data[x].completion_date;
                                       attachmentArrays.push({
                                         color: "#38B040",
-                                        text: `<${axosoftData.link}| ${axosoftData.number}> ${axosoftData.custom_fields.custom_1}  *${axosoftData.name}* \n ${axosoftData.assigned_to}  \`${axosoftData.workflow_step}\` ${formatCompletionDate(axosoftData.completionDate)}`,
+                                        text: `<${axosoftData.link}| ${axosoftData.number}> ${custom_1}  *${axosoftData.name}* \n ${axosoftData.assigned_to}  \`${axosoftData.workflow_step}\` ${formatCompletionDate(axosoftData.completionDate)}`,
                                         mrkdwn_in:["text"]
                                       });
                                   }else{
                                       attachmentArrays.push({
                                         color: "#38B040",
-                                        text: `<${axosoftData.link}| ${axosoftData.number}> ${axosoftData.custom_fields.custom_1}  *${axosoftData.name}* \n ${axosoftData.assigned_to}  \`${axosoftData.workflow_step}\` ${formatDueDate(Body.data[x])}`,
+                                        text: `<${axosoftData.link}| ${axosoftData.number}> ${custom_1}  *${axosoftData.name}* \n ${axosoftData.assigned_to}  \`${axosoftData.workflow_step}\` ${formatDueDate(Body.data[x])}`,
                                         mrkdwn_in:["text"]
                                       });
                                   }
@@ -131,17 +132,18 @@ attachmentMaker: function (Body, axoBaseUrl, axosoftToken, myKeyWordExists){
                               var data = module.exports.axosoftDataBuilder(axoBaseUrl, item);
                               if(myKeyWordExists)data.assigned_to = "";
 
+                              var custom_1 = (data.custom_fields && data.custom_fields.custom_1) || '';
                               if(item.hasOwnProperty("completion_date")){
                                   data.completionDate = item.completion_date;
                                   attachmentArrays.splice(indexOfitemsWithParent[e],0,{
                                       color: "#38B040",
-                                      text: `<${data.link}| ${data.number}> ${data.custom_fields.custom_1}  *${data.name}* \n ${data.assigned_to}  \`${data.workflow_step}\` ${formatCompletionDate(data.completionDate)} \nParent ${data.parent.id}: <${data.parent_link}| ${data.parent_name}>`,
+                                      text: `<${data.link}| ${data.number}> ${custom_1}  *${data.name}* \n ${data.assigned_to}  \`${data.workflow_step}\` ${formatCompletionDate(data.completionDate)} \nParent ${data.parent.id}: <${data.parent_link}| ${data.parent_name}>`,
                                       mrkdwn_in:["text"]
                                   });
                               }else{
                                   attachmentArrays.splice(indexOfitemsWithParent[e],0,{
                                     color: "#38B040",
-                                    text: `<${data.link}| ${data.number}> ${data.custom_fields.custom_1}  *${data.name}* \n ${data.assigned_to}  \`${data.workflow_step}\` ${formatDueDate(item)} \nParent ${data.parent.id}: <${data.parent_link}| ${data.parent_name}>`,
+                                    text: `<${data.link}| ${data.number}> ${custom_1}  *${data.name}* \n ${data.assigned_to}  \`${data.workflow_step}\` ${formatDueDate(item)} \nParent ${data.parent.id}: <${data.parent_link}| ${data.parent_name}>`,
                                     mrkdwn_in:["text"]
                                   });
                               }
