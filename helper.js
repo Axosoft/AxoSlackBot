@@ -390,6 +390,18 @@ formatAxosoftBaseUrl: function(url){
                         }
 },
 
+axosoftLoginUrlBuilder: function(axosoftUrl, message){
+                            var axosoftLoginUrl = axosoftUrl 
+                            + '/auth?response_type=code'
+                            + '&client_id='+ config.axosoftClientId
+                            + '&redirect_uri=' + config.baseUri + "/authorizationCode"
+                            + '&scope=read write'
+                            + '&expiring=false'
+                            + "&state="+ urlEncode(`userId=${message.user}&teamId=${message.team}&channelId=${message.channel}`);
+
+                            return axosoftLoginUrl;
+},
+
 authorizeUser:function(bot, message){
                   module.exports.retrieveDataFromDataBase(message.team, message.user,"teams")
                     .then(function(returnedData){
@@ -398,15 +410,8 @@ authorizeUser:function(bot, message){
                       }else {
                           var slackToken = returnedData.slackAccessToken;
                           var axosoftUrl = returnedData.axosoftBaseURL;
-                          var axosoftLoginUrl = axosoftUrl 
-                          + '/auth?response_type=code'
-                          + '&client_id='+ config.axosoftClientId
-                          + '&redirect_uri=' + config.baseUri + "/authorizationCode"
-                          + '&scope=read write'
-                          + '&expiring=false'
-                          + "&state="+ urlEncode(`userId=${message.user}&teamId=${message.team}&channelId=${message.channel}`);
-
-                          module.exports.sendTextToSlack(slackToken, message.channel, `I need permissions to talk to your Axosoft account. <${axosoftLoginUrl}|Click here to Authorize>` )
+                          var axosoftLoginUrl = module.exports.axosoftLoginUrlBuilder(axosoftUrl, message);
+                          module.exports.sendTextToSlack(slackToken, message.channel, `I need permissions to talk to your Axosoft account. <${axosoftLoginUrl}|Click here to Authorize>` );
                       }
                     }).catch(function(reason){
                         console.log(reason);
@@ -428,14 +433,7 @@ authorizeUserwithoutCollection:function(bot, message, returnedData){
                                             if(!error && response.statusCode == 200){
                                               var Body = JSON.parse(body);
                                               if(Body.data.hasOwnProperty("revision") && Body.data.revision >= 11218){
-                                                var axosoftLoginUrl = baseUrl 
-                                                + '/auth?response_type=code'
-                                                + '&client_id='+ config.axosoftClientId
-                                                + '&redirect_uri=' + config.baseUri + "/authorizationCode"
-                                                + '&scope=read write'
-                                                + '&expiring=false'
-                                                + "&state="+ urlEncode(`userId=${message.user}&teamId=${message.team}&channelId=${message.channel}`);
-
+                                                var axosoftLoginUrl = module.exports.axosoftLoginUrlBuilder(baseUrl, message);
                                                 if(saveAxoBaseUrl){
                                                   module.exports.saveAxosoftUrl(message, baseUrl);
                                                 }
