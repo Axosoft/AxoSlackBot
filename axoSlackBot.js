@@ -251,7 +251,10 @@ controller.hears('(.*)(axo)(d|f|t|i|[]{0})(\\s|[]{0})(\\d+)(.*)',['direct_messag
                       }
                   })
                   .catch(function(error){
-                    helper.sendTextToSlack(slackToken, channelId, error.message);
+                    console.log(error.statusCode);
+                    if(error.statusCode == 401){
+                       helper.authorizeUser(bot,message);
+                    }
                   });
             })
             .catch(function(reason){
