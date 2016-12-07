@@ -512,8 +512,8 @@ paramsBuilder: function(axosoftUrl, axosoftToken, slackToken, message){
                         access_token: axosoftToken,
                         columns: "name,id,item_type,priority,due_date,workflow_step,description,remaining_duration.duration_text,assigned_to,release,percent_complete,custom_fields.custom_1",
                         page_size: 10,
-                        //default sort created_date_time desc;
-                        sort_fields: 'created_date_time DESC';
+                        //default sort created_date_time desc
+                        sort_fields: 'created_date_time DESC'
                       };
 
                       //paging
