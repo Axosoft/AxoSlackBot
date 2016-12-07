@@ -156,6 +156,29 @@ attachmentMaker: function (Body, axoBaseUrl, axosoftToken, myKeyWordExists){
                     });
 },
 
+attachmentMakerForHelpOptions: function(){
+                                  return new Promise(function(resolve, reject){
+                                      var options = [
+                                        "`get my items`: a list of items I am assigned to",
+                                        "`get my updated items`: a list of my most recently updated items",
+                                        "`get my upcoming items`: a list of my open/unfinished items due in the next 2 weeks",
+                                        "`get my open items`: a list of all of my open/unfinished items",
+                                        "`axo + ID`: shows detals of a single item",
+                                        "*You can remove `my` from any command to retrieve ALL items from Axosoft."
+                                      ];
+
+                                      var helpOpptionsArray = [];
+                                      for(x=0; x<options.length; x++){
+                                        helpOpptionsArray.push({
+                                          color: "#FF8000",
+                                          text: options[x],
+                                          mrkdwn_in:["text"]
+                                        });
+                                      }
+                                      resolve(helpOpptionsArray);
+                                  });
+},
+
 getParentName: function(parentIds, axoBaseUrl, axosoftToken){
                   var parentDictionary = {}; 
                   return new Promise(function(resolve, reject){
@@ -183,7 +206,7 @@ getParentName: function(parentIds, axoBaseUrl, axosoftToken){
                             });
                       }else{
                         resolve(parentDictionary);
-                      }
+                      } 
                   });
 },
 
@@ -488,7 +511,9 @@ paramsBuilder: function(axosoftUrl, axosoftToken, slackToken, message){
                       var params = {
                         access_token: axosoftToken,
                         columns: "name,id,item_type,priority,due_date,workflow_step,description,remaining_duration.duration_text,assigned_to,release,percent_complete,custom_fields.custom_1",
-                        page_size: 10
+                        page_size: 10,
+                        //default sort created_date_time desc;
+                        sort_fields: 'created_date_time DESC';
                       };
 
                       //paging
@@ -501,8 +526,10 @@ paramsBuilder: function(axosoftUrl, axosoftToken, slackToken, message){
 
                       if(message.match[2] == 'open '){
                         params.filters = 'completion_date="1899-01-01"';
+                        params.sort_fields = 'last_updated_date_time DESC';
                       }else if(message.match[2] == 'closed '){
                         params.filters = 'completion_date=in[last30_days]';
+                        params.sort_fields = 'completion_date DESC,last_updated_date_time DESC';
                       }else if(message.match[2] == 'updated '){
                         params.sort_fields = 'last_updated_date_time DESC';
                       }else if(message.match[2] == 'upcoming '){
@@ -513,9 +540,9 @@ paramsBuilder: function(axosoftUrl, axosoftToken, slackToken, message){
                             return date;
                         }
 
-                        params.due_date = `[${today.toISOString()}=${today.addDays(14).toISOString()}]`;
+                        params.due_date = `[${today.addDays(-90).toISOString()}=${today.addDays(14).toISOString()}]`;
                         params.filters = 'completion_date="1899-01-01"';
-                        params.sort_fields = 'due_date'
+                        params.sort_fields = 'due_date,last_updated_date_time DESC'
                       }
 
                       if(message.match[1] == 'get my'){
