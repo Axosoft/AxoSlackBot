@@ -156,6 +156,29 @@ attachmentMaker: function (Body, axoBaseUrl, axosoftToken, myKeyWordExists){
                     });
 },
 
+attachmentMakerForHelpOptions: function(){
+                                  return new Promise(function(resolve, reject){
+                                      var options = [
+                                        "`get my items`: a list of items I am assigned to",
+                                        "`get my updated items`: a list of my most recently updated items",
+                                        "`get my upcoming items`: a list of my open/unfinished items due in the next 2 weeks",
+                                        "`get my open items`: a list of all of my open/unfinished items",
+                                        "`axo + ID`: shows detals of a single item",
+                                        "*You can remove `my` from any command to retrieve ALL items from Axosoft."
+                                      ];
+
+                                      var helpOpptionsArray = [];
+                                      for(x=0; x<options.length; x++){
+                                        helpOpptionsArray.push({
+                                          color: "#FF8000",
+                                          text: options[x],
+                                          mrkdwn_in:["text"]
+                                        });
+                                      }
+                                      resolve(helpOpptionsArray);
+                                  });
+},
+
 getParentName: function(parentIds, axoBaseUrl, axosoftToken){
                   var parentDictionary = {}; 
                   return new Promise(function(resolve, reject){
@@ -183,7 +206,7 @@ getParentName: function(parentIds, axoBaseUrl, axosoftToken){
                             });
                       }else{
                         resolve(parentDictionary);
-                      }
+                      } 
                   });
 },
 

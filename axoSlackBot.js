@@ -114,7 +114,7 @@ controller.on('rtm_close',function(bot) {
     // });
 });
 
-controller.hears('(get my|get) (.*)(items)(.*)',['direct_message,direct_mention,mention'],function(bot,message){
+controller.hears('(get my|get) (.*)(items)(.*)',['direct_message,direct_mention,mention'],function(bot, message){
     var channelId = message.channel;
     helper.checkAxosoftDataForUser(message.team, message.user)
     .then(function(userData){
@@ -180,7 +180,7 @@ controller.hears('(get my|get) (.*)(items)(.*)',['direct_message,direct_mention,
     });
 });
 
-controller.hears('(.*)(axo)(d|f|t|i|[]{0})(\\s|[]{0})(\\d+)(.*)',['direct_message,direct_mention,mention'],function(bot,message) { 
+controller.hears('(.*)(axo)(d|f|t|i|[]{0})(\\s|[]{0})(\\d+)(.*)',['direct_message,direct_mention,mention'],function(bot, message) { 
       var channelId = message.channel;
       var columns = "name,id,priority,due_date,workflow_step,remaining_duration.duration_text,item_type,assigned_to,release,description";
       var formatDueDate = function(dueDate){
@@ -275,6 +275,30 @@ controller.hears('(.*)(axo)(d|f|t|i|[]{0})(\\s|[]{0})(\\d+)(.*)',['direct_messag
               helper.authorizeUser(bot, message);
             }
        });
+});
+
+controller.hears(['help','Help','HELP'],['direct_message,direct_mention,mention'],function(bot, message){
+    helper.retrieveDataFromDataBase(message.team, message.user,"teams")
+    .then(function(returnedData){
+        var slackAccessToken = returnedData.slackAccessToken;
+        helper.attachmentMakerForHelpOptions()
+        .then(function(attach){
+          var params = {
+                token: returnedData.slackAccessToken,
+                channel: message.channel,
+                mrkdwn: true,
+                text: "Here is a list of commands you can type",
+                attachments:JSON.stringify(attach)
+          };
+          helper.makeRequest("GET","https://slack.com/api/chat.postMessage", params, function(err, response, body){});
+        })
+        .catch(function(reason){
+          var test = "";
+        });
+    })
+    .catch(function(reason){
+       conbsole.log(reason);
+    });
 });
 
 controller.storage.teams.all(function(err,teams) {
