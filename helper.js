@@ -511,7 +511,9 @@ paramsBuilder: function(axosoftUrl, axosoftToken, slackToken, message){
                       var params = {
                         access_token: axosoftToken,
                         columns: "name,id,item_type,priority,due_date,workflow_step,description,remaining_duration.duration_text,assigned_to,release,percent_complete,custom_fields.custom_1",
-                        page_size: 10
+                        page_size: 10,
+                        //default sort created_date_time desc;
+                        sort_fields: 'created_date_time DESC';
                       };
 
                       //paging
@@ -524,8 +526,10 @@ paramsBuilder: function(axosoftUrl, axosoftToken, slackToken, message){
 
                       if(message.match[2] == 'open '){
                         params.filters = 'completion_date="1899-01-01"';
+                        params.sort_fields = 'last_updated_date_time DESC';
                       }else if(message.match[2] == 'closed '){
                         params.filters = 'completion_date=in[last30_days]';
+                        params.sort_fields = 'completion_date DESC,last_updated_date_time DESC';
                       }else if(message.match[2] == 'updated '){
                         params.sort_fields = 'last_updated_date_time DESC';
                       }else if(message.match[2] == 'upcoming '){
@@ -536,9 +540,9 @@ paramsBuilder: function(axosoftUrl, axosoftToken, slackToken, message){
                             return date;
                         }
 
-                        params.due_date = `[${today.toISOString()}=${today.addDays(14).toISOString()}]`;
+                        params.due_date = `[${today.addDays(-90).toISOString()}=${today.addDays(14).toISOString()}]`;
                         params.filters = 'completion_date="1899-01-01"';
-                        params.sort_fields = 'due_date'
+                        params.sort_fields = 'due_date,last_updated_date_time DESC'
                       }
 
                       if(message.match[1] == 'get my'){
