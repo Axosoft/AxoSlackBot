@@ -122,7 +122,7 @@ attachmentMaker: function (Body, axoBaseUrl, axosoftToken, myKeyWordExists){
                                   }
                                 }
                         }
-
+                        
                         module.exports.getParentName(parentIds, axoBaseUrl, axosoftToken)
                         .then(function(parentDictionary){
                             for(e=0; e < itemsWithParent.length; e++){
@@ -159,27 +159,31 @@ attachmentMaker: function (Body, axoBaseUrl, axosoftToken, myKeyWordExists){
 getParentName: function(parentIds, axoBaseUrl, axosoftToken){
                   var parentDictionary = {}; 
                   return new Promise(function(resolve, reject){
-                      var args = [{
-                        access_token: axosoftToken,
-                        filters: `id=in[${parentIds}]`,
-                        columns: "name",
-                      }];
-                      var nodeAxo = new nodeAxosoft(axoBaseUrl, args[0].access_token);
-                      nodeAxo.promisify(nodeAxo.axosoftApi.Features.get, args)
-                      .then(function(response){
-                        if(response.data.length != 0){
-                            for(x=0; x<response.data.length; x++){
-                              parentDictionary[response.data[x].id] = response.data[x].name;
-                            }
-                            resolve(parentDictionary);
-                        }else{
-                          console.log("helper.getParentName data.length == 0");
-                        }
-                      })
-                      .catch(function(reason){
-                        console.log(reason);
-                        reject(reason);
-                      });
+                      if(parentIds.length > 0){
+                           var args = [{
+                              access_token: axosoftToken,
+                              filters: `id=in[${parentIds}]`,
+                              columns: "name",
+                            }];
+                            var nodeAxo = new nodeAxosoft(axoBaseUrl, args[0].access_token);
+                            nodeAxo.promisify(nodeAxo.axosoftApi.Features.get, args)
+                            .then(function(response){
+                              if(response.data.length != 0){
+                                  for(x=0; x<response.data.length; x++){
+                                    parentDictionary[response.data[x].id] = response.data[x].name;
+                                  }
+                                  resolve(parentDictionary);
+                              }else{
+                                console.log("helper.getParentName data.length == 0");
+                              }
+                            })
+                            .catch(function(reason){
+                              console.log(reason);
+                              reject(reason);
+                            });
+                      }else{
+                        resolve(parentDictionary);
+                      }
                   });
 },
 
