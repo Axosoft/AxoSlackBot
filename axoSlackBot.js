@@ -180,7 +180,7 @@ controller.hears('(get my|get) (.*)(items)(.*)',['direct_message,direct_mention,
     });
 });
 
-controller.hears('(.*)(axo)(d|f|t|i|[]{0})(\\s|[]{0})(\\d+)(.*)',['message_received'],function(bot,message) { 
+controller.hears('(.*)(axo)(d|f|t|i|[]{0})(\\s|[]{0})(\\d+)(.*)',['direct_message,direct_mention,mention'],function(bot,message) { 
       var channelId = message.channel;
       var columns = "name,id,priority,due_date,workflow_step,remaining_duration.duration_text,item_type,assigned_to,release,description";
       var formatDueDate = function(dueDate){
