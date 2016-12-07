@@ -287,7 +287,7 @@ controller.hears(['help','Help','HELP'],['direct_message,direct_mention,mention'
                 token: returnedData.slackAccessToken,
                 channel: message.channel,
                 mrkdwn: true,
-                text: "Here is a list of commands you can type",
+                text: "Here is a list of commands you can use:",
                 attachments:JSON.stringify(attach)
           };
           helper.makeRequest("GET","https://slack.com/api/chat.postMessage", params, function(err, response, body){});

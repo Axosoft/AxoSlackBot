@@ -159,12 +159,12 @@ attachmentMaker: function (Body, axoBaseUrl, axosoftToken, myKeyWordExists){
 attachmentMakerForHelpOptions: function(){
                                   return new Promise(function(resolve, reject){
                                       var options = [
-                                        "`get my items`: a list of items I am assigned to",
-                                        "`get my updated items`: a list of my most recently updated items",
-                                        "`get my upcoming items`: a list of my open/unfinished items due in the next 2 weeks",
-                                        "`get my open items`: a list of all of my open/unfinished items",
-                                        "`axo + ID`: shows detals of a single item",
-                                        "*You can remove `my` from any command to retrieve ALL items from Axosoft."
+                                        "`get my items`: List of items currently assigned to you",
+                                        "`get my updated items`: List of your most recently updated items",
+                                        "`get my upcoming items`: List of your open items due in the next 2 weeks",
+                                        "`get my open items`: List of your items not yet completed",
+                                        "*You can remove `my` from any command to get items not assigned to you from Axosoft.",
+                                        "`axo + ID`: Shows detals of a single item, e.g. axo 5"
                                       ];
 
                                       var helpOpptionsArray = [];
