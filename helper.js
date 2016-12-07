@@ -105,23 +105,24 @@ attachmentMaker: function (Body, axoBaseUrl, axosoftToken, myKeyWordExists){
                                   indexOfitemsWithParent.push(x);
                                   itemsWithParent.push(Body.data[x]);
                                 }else{
+                                  var custom_1 = (axosoftData.custom_fields && axosoftData.custom_fields.custom_1) || '';
                                   if(Body.data[x].hasOwnProperty("completion_date")){
                                       axosoftData.completionDate = Body.data[x].completion_date;
                                       attachmentArrays.push({
                                         color: "#38B040",
-                                        text: `<${axosoftData.link}| ${axosoftData.number}> ${axosoftData.custom_fields.custom_1}  *${axosoftData.name}* \n ${axosoftData.assigned_to}  \`${axosoftData.workflow_step}\` ${formatCompletionDate(axosoftData.completionDate)}`,
+                                        text: `<${axosoftData.link}| ${axosoftData.number}> ${custom_1}  *${axosoftData.name}* \n ${axosoftData.assigned_to}  \`${axosoftData.workflow_step}\` ${formatCompletionDate(axosoftData.completionDate)}`,
                                         mrkdwn_in:["text"]
                                       });
                                   }else{
                                       attachmentArrays.push({
                                         color: "#38B040",
-                                        text: `<${axosoftData.link}| ${axosoftData.number}> ${axosoftData.custom_fields.custom_1}  *${axosoftData.name}* \n ${axosoftData.assigned_to}  \`${axosoftData.workflow_step}\` ${formatDueDate(Body.data[x])}`,
+                                        text: `<${axosoftData.link}| ${axosoftData.number}> ${custom_1}  *${axosoftData.name}* \n ${axosoftData.assigned_to}  \`${axosoftData.workflow_step}\` ${formatDueDate(Body.data[x])}`,
                                         mrkdwn_in:["text"]
                                       });
                                   }
                                 }
                         }
-
+                        
                         module.exports.getParentName(parentIds, axoBaseUrl, axosoftToken)
                         .then(function(parentDictionary){
                             for(e=0; e < itemsWithParent.length; e++){
@@ -131,17 +132,18 @@ attachmentMaker: function (Body, axoBaseUrl, axosoftToken, myKeyWordExists){
                               var data = module.exports.axosoftDataBuilder(axoBaseUrl, item);
                               if(myKeyWordExists)data.assigned_to = "";
 
+                              var custom_1 = (data.custom_fields && data.custom_fields.custom_1) || '';
                               if(item.hasOwnProperty("completion_date")){
                                   data.completionDate = item.completion_date;
                                   attachmentArrays.splice(indexOfitemsWithParent[e],0,{
                                       color: "#38B040",
-                                      text: `<${data.link}| ${data.number}> ${data.custom_fields.custom_1}  *${data.name}* \n ${data.assigned_to}  \`${data.workflow_step}\` ${formatCompletionDate(data.completionDate)} \nParent ${data.parent.id}: <${data.parent_link}| ${data.parent_name}>`,
+                                      text: `<${data.link}| ${data.number}> ${custom_1}  *${data.name}* \n ${data.assigned_to}  \`${data.workflow_step}\` ${formatCompletionDate(data.completionDate)} \nParent ${data.parent.id}: <${data.parent_link}| ${data.parent_name}>`,
                                       mrkdwn_in:["text"]
                                   });
                               }else{
                                   attachmentArrays.splice(indexOfitemsWithParent[e],0,{
                                     color: "#38B040",
-                                    text: `<${data.link}| ${data.number}> ${data.custom_fields.custom_1}  *${data.name}* \n ${data.assigned_to}  \`${data.workflow_step}\` ${formatDueDate(item)} \nParent ${data.parent.id}: <${data.parent_link}| ${data.parent_name}>`,
+                                    text: `<${data.link}| ${data.number}> ${custom_1}  *${data.name}* \n ${data.assigned_to}  \`${data.workflow_step}\` ${formatDueDate(item)} \nParent ${data.parent.id}: <${data.parent_link}| ${data.parent_name}>`,
                                     mrkdwn_in:["text"]
                                   });
                               }
@@ -157,27 +159,31 @@ attachmentMaker: function (Body, axoBaseUrl, axosoftToken, myKeyWordExists){
 getParentName: function(parentIds, axoBaseUrl, axosoftToken){
                   var parentDictionary = {}; 
                   return new Promise(function(resolve, reject){
-                      var args = [{
-                        access_token: axosoftToken,
-                        filters: `id=in[${parentIds}]`,
-                        columns: "name",
-                      }];
-                      var nodeAxo = new nodeAxosoft(axoBaseUrl, args[0].access_token);
-                      nodeAxo.promisify(nodeAxo.axosoftApi.Features.get, args)
-                      .then(function(response){
-                        if(response.data.length != 0){
-                            for(x=0; x<response.data.length; x++){
-                              parentDictionary[response.data[x].id] = response.data[x].name;
-                            }
-                            resolve(parentDictionary);
-                        }else{
-                          console.log("helper.getParentName data.length == 0");
-                        }
-                      })
-                      .catch(function(reason){
-                        console.log(reason);
-                        reject(reason);
-                      });
+                      if(parentIds.length > 0){
+                           var args = [{
+                              access_token: axosoftToken,
+                              filters: `id=in[${parentIds}]`,
+                              columns: "name",
+                            }];
+                            var nodeAxo = new nodeAxosoft(axoBaseUrl, args[0].access_token);
+                            nodeAxo.promisify(nodeAxo.axosoftApi.Features.get, args)
+                            .then(function(response){
+                              if(response.data.length != 0){
+                                  for(x=0; x<response.data.length; x++){
+                                    parentDictionary[response.data[x].id] = response.data[x].name;
+                                  }
+                                  resolve(parentDictionary);
+                              }else{
+                                console.log("helper.getParentName data.length == 0");
+                              }
+                            })
+                            .catch(function(reason){
+                              console.log(reason);
+                              reject(reason);
+                            });
+                      }else{
+                        resolve(parentDictionary);
+                      }
                   });
 },
 
@@ -390,6 +396,18 @@ formatAxosoftBaseUrl: function(url){
                         }
 },
 
+axosoftLoginUrlBuilder: function(axosoftUrl, message){
+                            var axosoftLoginUrl = axosoftUrl 
+                            + '/auth?response_type=code'
+                            + '&client_id='+ config.axosoftClientId
+                            + '&redirect_uri=' + config.baseUri + "/authorizationCode"
+                            + '&scope=read write'
+                            + '&expiring=false'
+                            + "&state="+ urlEncode(`userId=${message.user}&teamId=${message.team}&channelId=${message.channel}`);
+
+                            return axosoftLoginUrl;
+},
+
 authorizeUser:function(bot, message){
                   module.exports.retrieveDataFromDataBase(message.team, message.user,"teams")
                     .then(function(returnedData){
@@ -398,15 +416,8 @@ authorizeUser:function(bot, message){
                       }else {
                           var slackToken = returnedData.slackAccessToken;
                           var axosoftUrl = returnedData.axosoftBaseURL;
-                          var axosoftLoginUrl = axosoftUrl 
-                          + '/auth?response_type=code'
-                          + '&client_id='+ config.axosoftClientId
-                          + '&redirect_uri=' + config.baseUri + "/authorizationCode"
-                          + '&scope=read write'
-                          + '&expiring=false'
-                          + "&state="+ urlEncode(`userId=${message.user}&teamId=${message.team}&channelId=${message.channel}`);
-
-                          module.exports.sendTextToSlack(slackToken, message.channel, `I need permissions to talk to your Axosoft account. <${axosoftLoginUrl}|Click here to Authorize>` )
+                          var axosoftLoginUrl = module.exports.axosoftLoginUrlBuilder(axosoftUrl, message);
+                          module.exports.sendTextToSlack(slackToken, message.channel, `I need permissions to talk to your Axosoft account. <${axosoftLoginUrl}|Click here to Authorize>` );
                       }
                     }).catch(function(reason){
                         console.log(reason);
@@ -428,14 +439,7 @@ authorizeUserwithoutCollection:function(bot, message, returnedData){
                                             if(!error && response.statusCode == 200){
                                               var Body = JSON.parse(body);
                                               if(Body.data.hasOwnProperty("revision") && Body.data.revision >= 11218){
-                                                var axosoftLoginUrl = baseUrl 
-                                                + '/auth?response_type=code'
-                                                + '&client_id='+ config.axosoftClientId
-                                                + '&redirect_uri=' + config.baseUri + "/authorizationCode"
-                                                + '&scope=read write'
-                                                + '&expiring=false'
-                                                + "&state="+ urlEncode(`userId=${message.user}&teamId=${message.team}&channelId=${message.channel}`);
-
+                                                var axosoftLoginUrl = module.exports.axosoftLoginUrlBuilder(baseUrl, message);
                                                 if(saveAxoBaseUrl){
                                                   module.exports.saveAxosoftUrl(message, baseUrl);
                                                 }
