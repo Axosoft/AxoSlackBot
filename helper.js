@@ -30,21 +30,24 @@ sendTextToSlack: function(slackToken, channelId, txt){
 formatText: function(body, message){
                 var pageNumber = Math.ceil((body.metadata.total_count/body.metadata.page_size));
                 var txt = "Here are";
-                if(message.text.includes("my")){
-                  txt = txt + " your";
-                }
+                if(message.text.includes("my")) txt = txt + " your";
                 txt = txt + " " +  message.match[2];
 
-                //TODO: cleanup
                 if(message.text.match('(.*)(page)(\\s)(\\d+)(.*)') != null){
-                  return `${txt} items ${message.text.match('(.*)(page)(\\s)(\\d+)(.*)')[4]} of ${pageNumber}`;
-                }else if(pageNumber>1){
-                  return `${txt} items page 1 of ${pageNumber}`;
-                }else if(message.text.includes("closed")){
-                  return txt = txt + " [items closed in the last 30 days]";
+                  if(message.text.includes("closed")){
+                    return `${txt} ${txt} items [in the last 30 days], page ${message.text.match('(.*)(page)(\\s)(\\d+)(.*)')[4]} of ${pageNumber}`
+                  }else{
+                    return `${txt} items ${message.text.match('(.*)(page)(\\s)(\\d+)(.*)')[4]} of ${pageNumber}`;
+                  }
                 }else{
-                  return `${txt} items`
-                };
+                  if(message.text.includes("closed")){
+                    return (pageNumber>1) ? txt = txt + `items [in the last 30 days], page 1 of ${pageNumber}` : txt = txt + "items [in the last 30 days]";
+                  }else if(pageNumber>1){
+                    return `${txt} items page 1 of ${pageNumber}`;
+                  }else{
+                    return `${txt} items`;
+                  }
+                }
 },
 
 sendDataToSlack: function(slackAccessToken, message, body, axoBaseUrl, axosoftToken){
