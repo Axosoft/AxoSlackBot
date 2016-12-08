@@ -114,7 +114,7 @@ controller.on('rtm_close',function(bot) {
     // });
 });
 
-controller.hears('(get my|get) (.*)(items)(.*)',['direct_message,direct_mention,mention'],function(bot, message){
+controller.hears('(get my|get) (.*)(items)(.*)',['direct_message,direct_mention,mention,ambient'],function(bot, message){
     var channelId = message.channel;
     helper.checkAxosoftDataForUser(message.team, message.user)
     .then(function(userData){
@@ -180,7 +180,7 @@ controller.hears('(get my|get) (.*)(items)(.*)',['direct_message,direct_mention,
     });
 });
 
-controller.hears('(.*)(axo)(d|f|t|i|[]{0})(\\s|[]{0})(\\d+)(.*)',['direct_message,direct_mention,mention'],function(bot,message) { 
+controller.hears('(.*)(axo)(d|f|t|i|[]{0})(\\s|[]{0})(\\d+)(.*)',['direct_message,direct_mention,mention,ambient'],function(bot,message) { 
       var channelId = message.channel;
       var columns = "name,id,priority,due_date,workflow_step,remaining_duration.duration_text,item_type,assigned_to,release,description";
       var formatDueDate = function(dueDate){
@@ -277,7 +277,7 @@ controller.hears('(.*)(axo)(d|f|t|i|[]{0})(\\s|[]{0})(\\d+)(.*)',['direct_messag
        });
 });
 
-controller.hears(['help','Help','HELP'],['direct_message,direct_mention,mention'],function(bot, message){
+controller.hears(['help','Help','HELP'],['direct_message,direct_mention,mention,ambient'],function(bot, message){
     helper.retrieveDataFromDataBase(message.team, message.user,"teams")
     .then(function(returnedData){
         var slackAccessToken = returnedData.slackAccessToken;
