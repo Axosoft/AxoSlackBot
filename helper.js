@@ -633,6 +633,21 @@ titleBuilder: function(name){
                   return (returnTitle != undefined) ? returnTitle : name.charAt(0).toUpperCase() + replaceAll("_", " ", name.slice(1));
 },
 
+trimDescription: function(string){
+                    var index = 0;
+                    if(string.charAt(900) == " "){
+                      return string.slice(0, 900);
+                    }else{
+                      for(d=900; d > 0; d--){
+                        if(string.charAt(d) == " "){
+                          index = d;
+                          break;
+                        }
+                      }
+                      return string.slice(0, index)+ "...";
+                    }
+},
+
 axosoftDataBuilder: function(baseUrl, data){
                         var axosoftData = new Object();
                         var propertyName = null;
@@ -645,7 +660,7 @@ axosoftDataBuilder: function(baseUrl, data){
                                 if(data[propertyName].hasOwnProperty("name")){
                                   axosoftData[propertyName] = (data[propertyName].name == null) ? "" : data[propertyName].name;
                                 }else if(propertyName == "description"){
-                                  var description = entities.decodeHTML(data[propertyName]);
+                                  var description = (data[propertyName].length > 900)? module.exports.trimDescription(entities.decodeHTML(data[propertyName])): entities.decodeHTML(data[propertyName]);
                                   axosoftData[propertyName] = striptags(description);
                                 }else if(propertyName == "due_date"){
                                   axosoftData[propertyName] = module.exports.timeFormat(data[propertyName]);
