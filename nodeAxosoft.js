@@ -9,6 +9,7 @@ class Axosoft {
     }
 
     promisify(apiFunction, args) {
+        args = args || [];
         return new Promise((resolve, reject) => {
             args.push((error, response) => {
                 if (error) reject(error);

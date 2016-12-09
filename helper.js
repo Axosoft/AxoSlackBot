@@ -250,16 +250,16 @@ timeFormat: function(input){
 
 getUserIdAxosoft: function(axoBaseUrl, axoAccessToken){
                       return new Promise(function(resolve, reject){
-                            var params = {
-                              access_token: axoAccessToken
-                            }
-                            module.exports.makeRequest('GET', axoBaseUrl + '/api/v5/me/', params, function(error, response, body){
-                                if(!error && response.statusCode == 200){
-                                   resolve(JSON.parse(body).data.id);
-                                }else{
-                                  reject(response);
-                                }
-                            });
+                      var args = [{
+                        access_token: axoAccessToken
+                      }];
+                      var nodeAxo = new nodeAxosoft(axoBaseUrl, args[0].access_token);
+                      nodeAxo.promisify(nodeAxo.axosoftApi.Me.get)
+                      .then(function(response){
+                        resolve(response.data.id);
+                      }).catch(function(reason){
+                        reject(reason);
+                      });
                       });
 },
 
