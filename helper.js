@@ -444,11 +444,11 @@ authorizeUser:function(bot, message){
                           var slackToken = returnedData.slackAccessToken;
                           var axosoftUrl = returnedData.axosoftBaseURL;
                           var axosoftLoginUrl = module.exports.axosoftLoginUrlBuilder(axosoftUrl, message);
-                          module.exports.sendTextToSlack(slackToken, message.channel, `I need permissions to talk to your Axosoft account. <${axosoftLoginUrl}|Click here to Authorize>` );
+                          module.exports.sendTextToSlack(slackToken, message.user, `I need permissions to talk to your Axosoft account. <${axosoftLoginUrl}|Click here to Authorize>` );
                       }
                     }).catch(function(reason){
                         console.log(reason);
-                        module.exports.sendTextToSlack(slackToken, message.channel,"I could not connect to your Axosoft account.");
+                        module.exports.sendTextToSlack(slackToken, message.user,"I could not connect to your Axosoft account.");
                     })
 },
 
