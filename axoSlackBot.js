@@ -114,7 +114,7 @@ controller.on('rtm_close',function(bot) {
     // });
 });
 
-controller.hears('(get my|get) (.*)(items)(.*)',['direct_message,direct_mention,mention,ambient'],function(bot, message){
+controller.hears('(get my|get) (.*)(items)(.*)',['direct_message,direct_mention,mention'],function(bot, message){
     var channelId = message.channel;
     helper.checkAxosoftDataForUser(message.team, message.user)
     .then(function(userData){
