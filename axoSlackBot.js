@@ -118,11 +118,6 @@ controller.hears('(get my|get) (.*)(items)(.*)',['direct_message,direct_mention,
     var channelId = message.channel;
     helper.checkAxosoftDataForUser(message.team, message.user)
     .then(function(userData){
-          var params = {};
-          if(message.text.includes("page")){
-             params.page = message.text.match('(.*)(page)(\\s)(\\d+)(.*)')[4];
-          }
-
           helper.retrieveDataFromDataBase(message.team, message.user,"teams")
           .then(function(returnedData){
               var axoBaseUrl = returnedData.axosoftBaseURL;
