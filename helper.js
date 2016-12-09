@@ -168,7 +168,8 @@ attachmentMakerForHelpOptions: function(){
                                         "*get my upcoming items:* List of your open items due in the next 2 weeks",
                                         "*get my closed items:* List of your items closed in the last 30 days",
                                         "*get my open items:* List of your items not yet completed",
-                                        "You can remove *my* from any command to get items not assigned to you from Axosoft."
+                                        "You can remove *my* from any command to get items not assigned to you from Axosoft.",
+                                        "Add 'page #' after any command to view items on that page, e.g. `get my upcoming items page 2`"
                                       ];
 
                                       var helpOpptionsArray = [];
