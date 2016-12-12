@@ -113,19 +113,19 @@ attachmentMaker: function (Body, axoBaseUrl, axosoftToken, myKeyWordExists){
                                       axosoftData.completionDate = Body.data[x].completion_date;
                                       attachmentArrays.push({
                                         color: "#38B040",
-                                        text: `<${axosoftData.link}| ${axosoftData.number}> ${custom_1}  *${axosoftData.name}* \n ${axosoftData.assigned_to}  \`${axosoftData.workflow_step}\` ${formatCompletionDate(axosoftData.completionDate)}`,
+                                        text: `<${axosoftData.link}| ${axosoftData.number}> ${custom_1}  *${axosoftData.name}*  ${axosoftData.assigned_to}  \`${axosoftData.workflow_step}\` ${formatCompletionDate(axosoftData.completionDate)}`,
                                         mrkdwn_in:["text"]
                                       });
                                   }else{
                                       attachmentArrays.push({
                                         color: "#38B040",
-                                        text: `<${axosoftData.link}| ${axosoftData.number}> ${custom_1}  *${axosoftData.name}* \n ${axosoftData.assigned_to}  \`${axosoftData.workflow_step}\` ${formatDueDate(Body.data[x])}`,
+                                        text: `<${axosoftData.link}| ${axosoftData.number}> ${custom_1}  *${axosoftData.name}*  ${axosoftData.assigned_to}  \`${axosoftData.workflow_step}\` ${formatDueDate(Body.data[x])}`,
                                         mrkdwn_in:["text"]
                                       });
                                   }
                                 }
                         }
-                        
+
                         module.exports.getParentName(parentIds, axoBaseUrl, axosoftToken)
                         .then(function(parentDictionary){
                             for(e=0; e < itemsWithParent.length; e++){
@@ -140,13 +140,13 @@ attachmentMaker: function (Body, axoBaseUrl, axosoftToken, myKeyWordExists){
                                   data.completionDate = item.completion_date;
                                   attachmentArrays.splice(indexOfitemsWithParent[e],0,{
                                       color: "#38B040",
-                                      text: `<${data.link}| ${data.number}> ${custom_1}  *${data.name}* \n ${data.assigned_to}  \`${data.workflow_step}\` ${formatCompletionDate(data.completionDate)} \nParent ${data.parent.id}: <${data.parent_link}| ${data.parent_name}>`,
+                                      text: `<${data.link}| ${data.number}> ${custom_1}  *${data.name}*  ${data.assigned_to}  \`${data.workflow_step}\` ${formatCompletionDate(data.completionDate)} \nParent ${data.parent.id}: <${data.parent_link}| ${data.parent_name}>`,
                                       mrkdwn_in:["text"]
                                   });
                               }else{
                                   attachmentArrays.splice(indexOfitemsWithParent[e],0,{
                                     color: "#38B040",
-                                    text: `<${data.link}| ${data.number}> ${custom_1}  *${data.name}* \n ${data.assigned_to}  \`${data.workflow_step}\` ${formatDueDate(item)} \nParent ${data.parent.id}: <${data.parent_link}| ${data.parent_name}>`,
+                                    text: `<${data.link}| ${data.number}> ${custom_1}  *${data.name}*  ${data.assigned_to}  \`${data.workflow_step}\` ${formatDueDate(item)} \nParent ${data.parent.id}: <${data.parent_link}| ${data.parent_name}>`,
                                     mrkdwn_in:["text"]
                                   });
                               }
@@ -479,7 +479,7 @@ authorizeUserwithoutCollection:function(bot, message, returnedData){
                                                     module.exports.saveAxosoftUrl(message, baseUrl);
                                                   }
                                                   convo.stop();
-                                                  module.exports.sendTextToSlack(slackToken, message.channel, `I need permissions to talk to your Axosoft account. <${axosoftLoginUrl}|Click here to Authorize>`);
+                                                  module.exports.sendTextToSlack(slackToken, message.user, `I need permissions to talk to your Axosoft account. <${axosoftLoginUrl}|Click here to Authorize>`);
                                                 }
                                                 else{
                                                   convo.say("Please upgrade your installation to Axosoft 17 or later");
@@ -518,6 +518,7 @@ paramsBuilder: function(axosoftUrl, axosoftToken, slackToken, message){
                         //default sort created_date_time desc
                         sort_fields: 'created_date_time DESC'
                       };
+                      var keyWord = message.match[2].toLowerCase();
 
                       //paging
                       var page = 1;
@@ -527,25 +528,30 @@ paramsBuilder: function(axosoftUrl, axosoftToken, slackToken, message){
                         params.page = page;
                       }
 
-                      if(message.match[2] == 'open '){
+                      if(keyWord == 'open '){
                         params.filters = 'completion_date="1899-01-01"';
                         params.sort_fields = 'last_updated_date_time DESC';
-                      }else if(message.match[2] == 'closed '){
+                      }else if(keyWord == 'closed '){
                         params.filters = 'completion_date=in[last30_days]';
                         params.sort_fields = 'completion_date DESC,last_updated_date_time DESC';
-                      }else if(message.match[2] == 'updated '){
+                      }else if(keyWord == 'updated '){
                         params.sort_fields = 'last_updated_date_time DESC';
-                      }else if(message.match[2] == 'upcoming '){
+                      }else if(keyWord== 'ranked '){
+                        params.sort_fields = 'rank';
+                      }else if(keyWord == 'upcoming '){
                         var today = new Date();
                         Date.prototype.addDays = function(days){
                             var date = new Date(this.valueOf());
                             date.setDate(date.getDate() + days);
                             return date;
                         }
-
                         params.due_date = `[${today.addDays(-90).toISOString()}=${today.addDays(14).toISOString()}]`;
                         params.filters = 'completion_date="1899-01-01"';
                         params.sort_fields = 'due_date,last_updated_date_time DESC'
+                      }else if(keyWord != ""){
+                        module.exports.sendTextToSlack(slackToken, message.channel,"I am sorry but I am not able to understand what you are asking for!");
+                        console.log("vague request from user!");
+                        reject("vague Request");
                       }
 
                       if(message.match[1] == 'get my'){
