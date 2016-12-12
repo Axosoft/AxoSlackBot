@@ -61,7 +61,7 @@ controller.setupWebserver(config.port,function(err,webserver) {
                 helper.retrieveDataFromDataBase(teamId, userId,"teams")
                 .then(function(returnedDataFromDb){
                   slackToken = returnedDataFromDb.slackAccessToken;
-                  helper.sendTextToSlack(slackToken, channelId, "Authorization successful!");
+                  helper.sendTextToSlack(slackToken, userId, "Authorization successful!");
                   res.send('<html><head><title>Axosoft Slack Authorized</title></head><body><h1>Authorization successful</h1><br/><h4>please close this window</h4></body></html>');
                 }).catch(function(reason){
                   console.log(reason);
