@@ -162,13 +162,21 @@ attachmentMaker: function (Body, axoBaseUrl, axosoftToken, myKeyWordExists){
 attachmentMakerForHelpOptions: function(){
                                   return new Promise(function(resolve, reject){
                                       var options = [
-                                        "*axo + ID:* Shows detals of a single item, e.g. axo 5",
-                                        "*get my items:* List of items currently assigned to you",
-                                        "*get my updated items:* List of your most recently updated items",
-                                        "*get my upcoming items:* List of your open items due in the next 2 weeks",
-                                        "*get my closed items:* List of your items closed in the last 30 days",
-                                        "*get my open items:* List of your items not yet completed",
-                                        "You can remove *my* from any command to get items not assigned to you from Axosoft.",
+                                        "*axo + ID:* Shows detals of a single item, e.g. axo 5 (works in any room the Axosoft bot is in)",
+                                        
+                                        "*get my items:* List of items currently assigned to you"
+                                        + "\n*get my updated items:* List of your most recently updated items"
+                                        + "\n*get my upcoming items:* List of your open items due in the next 2 weeks"
+                                        + "\n*get my closed items:* List of your items closed in the last 30 days"
+                                        + "\n*get my open items:* List of your items not yet completed"
+                                        + "\n*get my ranked items:* List of your items sorted by rank",
+                                        
+                                        "*get updated items:* List of all most recently updated items"
+                                        + "\n*get upcoming items:* List of all open items due in the next 2 weeks"
+                                        + "\n*get closed items:* List of all items closed in the last 30 days"
+                                        + "\n*get open items:* List of all items not yet completed"
+                                        + "\n*get ranked items:* List of all items sorted by rank",
+                                        
                                         "Add 'page #' after any command to view items on that page, e.g. `get my upcoming items page 2`"
                                       ];
 
@@ -549,8 +557,7 @@ paramsBuilder: function(axosoftUrl, axosoftToken, slackToken, message){
                         params.filters = 'completion_date="1899-01-01"';
                         params.sort_fields = 'due_date,last_updated_date_time DESC'
                       }else if(keyWord != ""){
-                        module.exports.sendTextToSlack(slackToken, message.channel,"I am sorry but I am not able to understand what you are asking for!");
-                        console.log("vague request from user!");
+                        module.exports.sendTextToSlack(slackToken, message.channel,"I don't understand what you want me to do. You can ask me 'help' for a list of supported commands");
                         reject("vague Request");
                       }
 
