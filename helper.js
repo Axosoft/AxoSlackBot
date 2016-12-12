@@ -517,6 +517,7 @@ paramsBuilder: function(axosoftUrl, axosoftToken, slackToken, message){
                         //default sort created_date_time desc
                         sort_fields: 'created_date_time DESC'
                       };
+                      var keyWord = message.match[2].toLowerCase();
 
                       //paging
                       var page = 1;
@@ -526,15 +527,17 @@ paramsBuilder: function(axosoftUrl, axosoftToken, slackToken, message){
                         params.page = page;
                       }
 
-                      if(message.match[2] == 'open '){
+                      if(keyWord == 'open '){
                         params.filters = 'completion_date="1899-01-01"';
                         params.sort_fields = 'last_updated_date_time DESC';
-                      }else if(message.match[2] == 'closed '){
+                      }else if(keyWord == 'closed '){
                         params.filters = 'completion_date=in[last30_days]';
                         params.sort_fields = 'completion_date DESC,last_updated_date_time DESC';
-                      }else if(message.match[2] == 'updated '){
+                      }else if(keyWord == 'updated '){
                         params.sort_fields = 'last_updated_date_time DESC';
-                      }else if(message.match[2] == 'upcoming '){
+                      }else if(keyWord== 'ranked '){
+                        params.sort_fields = 'rank';
+                      }else if(keyWord == 'upcoming '){
                         var today = new Date();
                         Date.prototype.addDays = function(days){
                             var date = new Date(this.valueOf());
@@ -544,7 +547,7 @@ paramsBuilder: function(axosoftUrl, axosoftToken, slackToken, message){
                         params.due_date = `[${today.addDays(-90).toISOString()}=${today.addDays(14).toISOString()}]`;
                         params.filters = 'completion_date="1899-01-01"';
                         params.sort_fields = 'due_date,last_updated_date_time DESC'
-                      }else if(message.match[2] != ""){
+                      }else if(keyWord != ""){
                         module.exports.sendTextToSlack(slackToken, message.channel,"I am sorry but I am not able to understand what you are asking for!");
                         console.log("vague request from user!");
                         reject("vague Request");
