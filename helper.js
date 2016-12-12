@@ -541,10 +541,13 @@ paramsBuilder: function(axosoftUrl, axosoftToken, slackToken, message){
                             date.setDate(date.getDate() + days);
                             return date;
                         }
-
                         params.due_date = `[${today.addDays(-90).toISOString()}=${today.addDays(14).toISOString()}]`;
                         params.filters = 'completion_date="1899-01-01"';
                         params.sort_fields = 'due_date,last_updated_date_time DESC'
+                      }else if(message.match[2] != ""){
+                        module.exports.sendTextToSlack(slackToken, message.channel,"I am sorry but I am not able to understand what you are asking for!");
+                        console.log("vague request from user!");
+                        reject("vague Request");
                       }
 
                       if(message.match[1] == 'get my'){
