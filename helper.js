@@ -113,13 +113,13 @@ attachmentMaker: function (Body, axoBaseUrl, axosoftToken, myKeyWordExists){
                                       axosoftData.completionDate = Body.data[x].completion_date;
                                       attachmentArrays.push({
                                         color: "#38B040",
-                                        text: `<${axosoftData.link}| ${axosoftData.number}> ${custom_1}  *${axosoftData.name}*  ${axosoftData.assigned_to}  \`${axosoftData.workflow_step}\` ${formatCompletionDate(axosoftData.completionDate)}`,
+                                        text: `<${axosoftData.link}| ${axosoftData.number}>: ${custom_1}  *${axosoftData.name}*  ${axosoftData.assigned_to}  \`${axosoftData.workflow_step}\` ${formatCompletionDate(axosoftData.completionDate)}`,
                                         mrkdwn_in:["text"]
                                       });
                                   }else{
                                       attachmentArrays.push({
                                         color: "#38B040",
-                                        text: `<${axosoftData.link}| ${axosoftData.number}> ${custom_1}  *${axosoftData.name}*  ${axosoftData.assigned_to}  \`${axosoftData.workflow_step}\` ${formatDueDate(Body.data[x])}`,
+                                        text: `<${axosoftData.link}| ${axosoftData.number}>: ${custom_1}  *${axosoftData.name}*  ${axosoftData.assigned_to}  \`${axosoftData.workflow_step}\` ${formatDueDate(Body.data[x])}`,
                                         mrkdwn_in:["text"]
                                       });
                                   }
@@ -140,13 +140,13 @@ attachmentMaker: function (Body, axoBaseUrl, axosoftToken, myKeyWordExists){
                                   data.completionDate = item.completion_date;
                                   attachmentArrays.splice(indexOfitemsWithParent[e],0,{
                                       color: "#38B040",
-                                      text: `<${data.link}| ${data.number}> ${custom_1}  *${data.name}*  ${data.assigned_to}  \`${data.workflow_step}\` ${formatCompletionDate(data.completionDate)} \nParent ${data.parent.id}: <${data.parent_link}| ${data.parent_name}>`,
+                                      text: `<${data.link}| ${data.number}>: ${custom_1}  *${data.name}*  ${data.assigned_to}  \`${data.workflow_step}\` ${formatCompletionDate(data.completionDate)}\n\t(Parent) <${data.parent_link}|${data.parent.id}>: ${data.parent_name}`,
                                       mrkdwn_in:["text"]
                                   });
                               }else{
                                   attachmentArrays.splice(indexOfitemsWithParent[e],0,{
                                     color: "#38B040",
-                                    text: `<${data.link}| ${data.number}> ${custom_1}  *${data.name}*  ${data.assigned_to}  \`${data.workflow_step}\` ${formatDueDate(item)} \nParent ${data.parent.id}: <${data.parent_link}| ${data.parent_name}>`,
+                                    text: `<${data.link}| ${data.number}>: ${custom_1}  *${data.name}*  ${data.assigned_to}  \`${data.workflow_step}\` ${formatDueDate(item)}\n\t(Parent) <${data.parent_link}|${data.parent.id}>: ${data.parent_name}`,
                                     mrkdwn_in:["text"]
                                   });
                               }
