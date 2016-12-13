@@ -113,13 +113,13 @@ attachmentMaker: function (Body, axoBaseUrl, axosoftToken, myKeyWordExists){
                                       axosoftData.completionDate = Body.data[x].completion_date;
                                       attachmentArrays.push({
                                         color: "#38B040",
-                                        text: `<${axosoftData.link}| ${axosoftData.number}> ${custom_1}  *${axosoftData.name}*  ${axosoftData.assigned_to}  \`${axosoftData.workflow_step}\` ${formatCompletionDate(axosoftData.completionDate)}`,
+                                        text: `<${axosoftData.link}| ${axosoftData.number}>: ${custom_1}  *${axosoftData.name}*  ${axosoftData.assigned_to}  \`${axosoftData.workflow_step}\` ${formatCompletionDate(axosoftData.completionDate)}`,
                                         mrkdwn_in:["text"]
                                       });
                                   }else{
                                       attachmentArrays.push({
                                         color: "#38B040",
-                                        text: `<${axosoftData.link}| ${axosoftData.number}> ${custom_1}  *${axosoftData.name}*  ${axosoftData.assigned_to}  \`${axosoftData.workflow_step}\` ${formatDueDate(Body.data[x])}`,
+                                        text: `<${axosoftData.link}| ${axosoftData.number}>: ${custom_1}  *${axosoftData.name}*  ${axosoftData.assigned_to}  \`${axosoftData.workflow_step}\` ${formatDueDate(Body.data[x])}`,
                                         mrkdwn_in:["text"]
                                       });
                                   }
@@ -140,13 +140,13 @@ attachmentMaker: function (Body, axoBaseUrl, axosoftToken, myKeyWordExists){
                                   data.completionDate = item.completion_date;
                                   attachmentArrays.splice(indexOfitemsWithParent[e],0,{
                                       color: "#38B040",
-                                      text: `<${data.link}| ${data.number}> ${custom_1}  *${data.name}*  ${data.assigned_to}  \`${data.workflow_step}\` ${formatCompletionDate(data.completionDate)} \nParent ${data.parent.id}: <${data.parent_link}| ${data.parent_name}>`,
+                                      text: `<${data.link}| ${data.number}>: ${custom_1}  *${data.name}*  ${data.assigned_to}  \`${data.workflow_step}\` ${formatCompletionDate(data.completionDate)}\n\t(Parent) <${data.parent_link}|${data.parent.id}>: ${data.parent_name}`,
                                       mrkdwn_in:["text"]
                                   });
                               }else{
                                   attachmentArrays.splice(indexOfitemsWithParent[e],0,{
                                     color: "#38B040",
-                                    text: `<${data.link}| ${data.number}> ${custom_1}  *${data.name}*  ${data.assigned_to}  \`${data.workflow_step}\` ${formatDueDate(item)} \nParent ${data.parent.id}: <${data.parent_link}| ${data.parent_name}>`,
+                                    text: `<${data.link}| ${data.number}>: ${custom_1}  *${data.name}*  ${data.assigned_to}  \`${data.workflow_step}\` ${formatDueDate(item)}\n\t(Parent) <${data.parent_link}|${data.parent.id}>: ${data.parent_name}`,
                                     mrkdwn_in:["text"]
                                   });
                               }
@@ -586,86 +586,84 @@ getParamsFromQueryString: function(query){
                               return object;
 },
 
-formatAxosoftDataForSlack: function(object){
-                  var dataArray = [];
-                  var propertyName = null;
-                  var keysArray = Object.keys(object);
-                  keysArray.splice(keysArray.indexOf("description"), 1);
-                  keysArray.push("description");
+formatAxosoftItemData: function(item){
+  var fieldsArray = [];
 
-                  String.prototype.replaceAt = function(index, character) {
-                      return this.substr(0, index) + character.toString() + this.substr(index+1);
-                  }
+  fieldsArray.push({
+    title: 'Project',
+    value: item['project'],
+    short: true
+  });
 
-                  for(x=0; x < keysArray.length; x++){
-                      if(keysArray[x] == "link" || keysArray[x] == "id" || keysArray[x] == "number" || keysArray[x] == "name"){
-                        continue;
-                      }else if(typeof(object[keysArray[x]]) == "object"){ 
-                          if(keysArray[x] == "parent" && object[keysArray[x]].id == 0){
-                            continue;
-                          }else{
-                             dataArray.push({
-                                  title: module.exports.titleBuilder(keysArray[x]).hasOwnProperty("title") ? module.exports.titleBuilder(keysArray[x])["title"] : module.exports.titleBuilder(keysArray[x]),
-                                  value: ((object[keysArray[x]].hasOwnProperty("id")) && (object[keysArray[x]].id > 0)) ? `<${object.link.replaceAt( object.link.indexOf("=")+1, object.parent.id)} | ${object.parent.id}>`: `${object[keysArray[x]][Object.keys(object[keysArray[x]])[0]]}`,
-                                  short: true
-                              });
-                          }
-                      }else{
-                          dataArray.push({
-                              title: module.exports.titleBuilder(keysArray[x]).hasOwnProperty("title") ? module.exports.titleBuilder(keysArray[x])["title"] : module.exports.titleBuilder(keysArray[x]),
-                              value: object[keysArray[x]],
-                              short: (keysArray[x] == "description") ? false : true
-                          });
-                      }
-                  }
-                  return dataArray;
+    fieldsArray.push({
+    title: 'Release',
+    value: item['release'],
+    short: true
+  });
+    fieldsArray.push({
+    title: 'Workflow Step',
+    value: item['workflow_step'],
+    short: true
+  });
+    fieldsArray.push({
+    title: 'Assigned To',
+    value: item['assigned_to'],
+    short: true
+  });
+    fieldsArray.push({
+    title: 'Priority',
+    value: item['priority'],
+    short: true
+  });
+    fieldsArray.push({
+    title: 'Remaining Estimate',
+    value: item['remaining_duration']['duration_text'],
+    short: true
+  });
+
+  if (item['parent']['id'] > 0 ){
+    fieldsArray.push({
+    title: 'Parent',
+    value: `<${item.parent_link}|${item.parent.id}>`,
+    short: true
+    });
+  }
+
+  //if work item type exists
+  if (item['custom_fields'] != undefined) {
+    fieldsArray.push({
+    title: 'Work Item Type',
+    value: item['custom_fields'],
+    short: true
+  });
+  }
+
+    fieldsArray.push({
+    title: 'Description',
+    value: module.exports.trimDescription(item['description']),
+    short: false
+  });
+
+  return fieldsArray;
 },
 
-titleBuilder: function(name){
-                  var titles = [
-                    {value : "parent", title: "Parent"},
-                    {value : "name", title: "Project"},
-                    {value : "workflow_step", title: "Workflow Step"},
-                    {value : "assigned_to", title: "Assigned To"},
-                    {value : "priority", title: "Priority"},
-                    {value : "custom_fields", title: "Work Item Type"},
-                    {value : "due_date", title: "Due Date"},
-                    {value : "remaining_duration", title: "Remaining Estimate"},
-                    {value : "release", title: "Release"},
-                    {value : "subitems", title: "SubItems"},
-                    {value : "description", title: "Description"},
-                  ];
-
-                  var replaceAll =  function(find, replacement, value){
-                                  var re = new RegExp(find, 'g');
-                                  return value.replace(re, replacement);
-                  };
-
-                  var returnTitle = titles.find(function(item){
-                      return name == item.value;
-                  });
-                  return (returnTitle != undefined) ? returnTitle : name.charAt(0).toUpperCase() + replaceAll("_", " ", name.slice(1));
-},
-
-trimDescription: function(string){
-                    var index = 0;
-                    if(string.charAt(900) == " "){
-                      return string.slice(0, 900);
-                    }else{
+trimDescription: function(description){
+                    if (description.length > 900) {
                       for(d=900; d > 0; d--){
-                        if(string.charAt(d) == " "){
-                          index = d;
+                        if(description.charAt(d) == " "){
+                          description = description.slice(0, d) + '...';
                           break;
                         }
                       }
-                      return string.slice(0, index)+ "...";
                     }
+                    return description;
 },
 
 axosoftDataBuilder: function(baseUrl, data){
                         var axosoftData = new Object();
                         var propertyName = null;
                         axosoftData.link = `${baseUrl}/viewitem?id=${data.id}&type=${data.item_type}&force_use_number=true/`;
+                        axosoftData.parent_link = `${baseUrl}/viewitem?id=${data.parent.id}&type=${data.item_type}&force_use_number=true/`;
                         for(z=0; z < Object.keys(data).length; z++){
                             propertyName = Object.keys(data)[z];
                             if(data[propertyName] == null || data[propertyName] == ""){

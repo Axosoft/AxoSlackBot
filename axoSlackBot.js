@@ -237,8 +237,8 @@ controller.hears('(.*)(axo)(d|f|t|i|[]{0})(\\s|[]{0})(\\d+)(.*)',['direct_messag
                               mrkdwn: true,
                               attachments:JSON.stringify([{
                                   color: "#38B040",
-                                  text: `<${axosoftData.link}|${axosoftData.number}>: ${axosoftData.name}`,
-                                  fields: helper.formatAxosoftDataForSlack(axosoftData),
+                                  text: `<${axosoftData.link}|${axosoftData.number}>: ${axosoftData.name}${axosoftData.has_attachments ? ' :paperclip:' : ''}`,
+                                  fields: helper.formatAxosoftItemData(axosoftData),
                                   mrkdwn_in:["text"]
                               }])
                         };
