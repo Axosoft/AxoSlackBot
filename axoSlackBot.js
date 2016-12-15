@@ -7,7 +7,7 @@ const MongoClient = require('mongodb').MongoClient;
 const ObjectId = require('mongodb').ObjectID
 const mongoStorage = require('botkit-storage-mongo')({mongoUri: config.mongoUri});
 const urlEncode = require('urlencode');
-const controller = Botkit.slackbot({storage: mongoStorage});
+const controller = Botkit.slackbot({storage: mongoStorage, interactive_replies: true});
 const qs = require('querystring');
 const striptags = require('striptags');
 
@@ -276,6 +276,16 @@ controller.hears('(.*)(axo)(d|f|t|i|[]{0})(\\s|[]{0})(\\d+)(.*)',['direct_messag
        });
 });
 
+controller.hears(['filters','Filters','FILTERS'],['direct_message,direct_mention,mention'],function(bot, message){
+    helper.axosoftFiltersBuilder(message)
+    .then(function(axosoftFilters){
+      helper.filterConversation(bot, message, axosoftFilters.data);
+    })
+    .catch(function(reason){
+
+    });
+});
+
 controller.hears(['help','Help','HELP'],['direct_message,direct_mention,mention'],function(bot, message){
     helper.retrieveDataFromDataBase(message.team, message.user,"teams")
     .then(function(returnedData){
@@ -292,7 +302,7 @@ controller.hears(['help','Help','HELP'],['direct_message,direct_mention,mention'
           helper.makeRequest("GET","https://slack.com/api/chat.postMessage", params, function(err, response, body){});
         })
         .catch(function(reason){
-          var test = "";
+          console.log(reason);
         });
     })
     .catch(function(reason){

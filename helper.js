@@ -718,6 +718,104 @@ axosoftApiMethod: function(Axo, itemType){
                       }
 },
 
+axosoftFiltersBuilder: function(message){
+                          return new Promise(function(resolve, reject){
+                              module.exports.checkAxosoftDataForUser(message.team, message.user)
+                              .then(function(axosoftData){
+                                var nodeAxo = new nodeAxosoft(axosoftData[1], axosoftData[0]);
+                                var argArray = ["features"];
+                                nodeAxo.promisify(nodeAxo.axosoftApi.Filters.get, argArray)
+                                .then(function(filters){
+                                  resolve(filters);
+                                })
+                                .catch(function(reason){
+                                  console.log(reason);
+                                  reject(reason);
+                                });
+                              })
+                              .catch(function(reason){
+                                  console.log(reason);
+                                  module.exports.createNewCollection(message)
+                                  .then(function(val){
+
+                                  })
+                                  .catch(function(reason){
+                                    console.log("Something went wrong with building a collection for the new user in the database!");
+                                  });
+                              });
+                          });
+},
+
+actionArrayMaker: function(filters){
+                      var actions = [];
+                      for(c=0; c < filters.length; c++){
+                        actions.push({
+                            "name": `${filters[c].name}`,
+                            "text": `${filters[c].name}`,
+                            "type": "button",
+                            "value": `${filters[c].name}`
+                        });
+                      }
+                      return actions;
+},
+
+attachmentsArrayMakerForInteractiveButtons: function(actions){
+                                                  var mainArray = [];
+                                                  var attachments = [];
+                                                  
+                                                  var index = 0;
+                                                  for(x=0; x < 5; x++){
+                                                      attachments = [{
+                                                          "fallback": "You are unable to choose a game",
+                                                          "callback_id": "wopr_game",
+                                                          "color": "#3AA3E3",
+                                                          "attachment_type": "default",
+                                                          "actions":[]
+                                                      }];
+
+                                                      for(z=0; z < 5; z++){ //5 is max count of buttons in a row (slack restriction)
+                                                        if(index == actions.length){
+                                                          attachments[0].actions.push({
+                                                                  "name": "noFilter",
+                                                                  "text": "No Filter",
+                                                                  "type": "button",
+                                                                  "style": "danger",
+                                                                  "value": "noFilter"
+                                                           });
+                                                           index++;
+                                                           break;
+                                                        }else if(index < actions.length){
+                                                           attachments[0].actions.push({
+                                                                  "name": `${actions[index].name}`,
+                                                                  "text": `${actions[index].text}`,
+                                                                  "type": "button",
+                                                                  "value": `${actions[index].value}`
+                                                           });
+                                                          index++;
+                                                        }
+                                                      }
+                                                      mainArray.push(attachments[0]);
+                                                  }
+                                                  return mainArray;
+},
+
+filterConversation: function(bot, message, filters){
+                      var actionsArray = module.exports.actionArrayMaker(filters); 
+                      var attachs = module.exports.attachmentsArrayMakerForInteractiveButtons(actionsArray);
+                      bot.startConversation(message, function(err, convo){
+                          convo.ask({
+                              "text": "Which filter would you like to use?",
+                              "attachments": attachs
+                          },[{
+                                  default: true,
+                                  callback: function(reply, convo){
+                                      // do something really cool here 
+                                  }
+                            }]
+                          );
+                      });
+}
+
 replaceAxoUrl: function(url) {
   return url.replace('.axosoft.com', '.axosoftbeta.com');
 }
