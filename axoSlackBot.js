@@ -120,7 +120,7 @@ controller.on('rtm_close',function(bot) {
     // });
 });
 
-controller.hears('(get my|get) (.*)(items)(.*)',['direct_message,direct_mention,mention'],function(bot, message){
+controller.hears('(get my|get) (.*)(items)(.*)',['direct_message,direct_mention,mention,ambient'],function(bot, message){
     var channelId = message.channel;
     helper.checkAxosoftDataForUser(bot, message)
     .then(function(userData){
@@ -221,43 +221,47 @@ controller.hears('(.*)(axo)(d|f|t|i|[]{0})(\\s|[]{0})(\\d+)(.*)',['direct_messag
             .then(function(returnedData){
                   var axoBaseUrl = returnedData.axosoftBaseURL;
                   var slackToken = returnedData.slackAccessToken;
-                  var args = [{
-                    access_token: userData.axosoftAccessToken,
-                    item_id: item_id,
-                    columns: formatColumns(item_type), 
-                    page_size: 10
-                  }];
-
-                  var nodeAxo = new nodeAxosoft(axoBaseUrl, userData.axosoftAccessToken);
-                  nodeAxo.promisify(helper.axosoftApiMethod(nodeAxo, item_type).get, args)
-                  .then(function(response){
-                      if(response.data.length == 0){
-                        helper.sendTextToSlack(slackToken, channelId, `I could not find item \`# ${message.match[5]}\``);
-                      }else{
-                        var axosoftData = helper.axosoftDataBuilder(axoBaseUrl, response.data[0]);
-                        var params = {
-                              token: slackToken,
-                              channel:channelId,
-                              mrkdwn: true,
-                              attachments:JSON.stringify([{
-                                  color: "#38B040",
-                                  text: `<${axosoftData.link}|${axosoftData.number}>: ${axosoftData.name}${axosoftData.has_attachments ? ' :paperclip:' : ''}`,
-                                  fields: helper.formatAxosoftItemData(axosoftData),
-                                  mrkdwn_in:["text"]
-                              }])
-                        };
-                        helper.makeRequest("GET","https://slack.com/api/chat.postMessage", params, function(err, response, body){});
-                      }
-                  })
-                  .catch(function(error){
-                    console.log(error.statusCode);
-                    if(error.statusCode == 401){
-                       helper.authorizeUser(bot,message);
-                    }
-                  });
+                  if(item_id > 2147483647){
+                    helper.sendTextToSlack(slackToken, channelId, `I could not find item \`# ${item_id}\``);
+                  }else{
+                       var args = [{
+                          access_token: userData.axosoftAccessToken,
+                          filters: `id=${item_id}`,
+                          columns: formatColumns(item_type), 
+                          page_size: 10
+                        }];
+                        var nodeAxo = new nodeAxosoft(axoBaseUrl, userData.axosoftAccessToken);
+                        nodeAxo.promisify(helper.axosoftApiMethod(nodeAxo, item_type).get, args)
+                        .then(function(response){
+                            if(response.data.length == 0){
+                              helper.sendTextToSlack(slackToken, channelId, `I could not find item \`# ${message.match[5]}\``);
+                            }else{
+                              var axosoftData = helper.axosoftDataBuilder(axoBaseUrl, response.data[0]);
+                              var params = {
+                                    token: slackToken,
+                                    channel:channelId,
+                                    mrkdwn: true,
+                                    attachments:JSON.stringify([{
+                                        color: "#38B040",
+                                        text: `<${axosoftData.link}|${axosoftData.number}>: ${axosoftData.name}${axosoftData.has_attachments ? ' :paperclip:' : ''}`,
+                                        fields: helper.formatAxosoftItemData(axosoftData),
+                                        mrkdwn_in:["text"]
+                                    }])
+                              };
+                              helper.makeRequest("GET","https://slack.com/api/chat.postMessage", params, function(err, response, body){});
+                            }
+                        })
+                        .catch(function(error){
+                          console.log(error.statusCode);
+                          if(error.statusCode == 401){
+                            helper.authorizeUser(bot,message);
+                          }
+                        });
+                  }
+                        var nodeAxo = new nodeAxosoft(axoBaseUrl, args[0].access_token);
             })
             .catch(function(reason){
-                console.log(reason);
+              console.log(reason);
             })
        })
        .catch(function(reason){
