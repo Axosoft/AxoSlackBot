@@ -40,7 +40,7 @@ controller.setupWebserver(config.port,function(err,webserver) {
 
     controller.webserver.get('/authorizationCode', function(req, res) {
         var code = req.query.code;
-        var axoBaseUrl = req.headers.referer.substr(0, req.headers.referer.indexOf("auth"));
+        //var axoBaseUrl = req.headers.referer.substr(0, req.headers.referer.indexOf("auth"));
         var object = helper.getParamsFromQueryString(req.query);
         var userId = object.userId;
         var teamId = object.teamId;
@@ -54,21 +54,27 @@ controller.setupWebserver(config.port,function(err,webserver) {
           client_secret: config.axosoftClientSecret
         };
 
-        helper.makeRequest("GET", `${axoBaseUrl}/api/oauth2/token`, params, function(error, response, body){
-            var Body = JSON.parse(body);
-            if(Body.access_token != null){
-                helper.saveAxosoftAccessToken(userId, teamId, Body.access_token);
-                helper.retrieveDataFromDataBase(teamId, userId,"teams")
-                .then(function(returnedDataFromDb){
-                  slackToken = returnedDataFromDb.slackAccessToken;
-                  helper.sendTextToSlack(slackToken, userId, "Authorization successful!");
-                  res.send('<html><head><title>Axosoft Slack Authorized</title></head><body><h1>Authorization successful</h1><br/><h4>please close this window</h4></body></html>');
-                }).catch(function(reason){
-                  console.log(reason);
-                });
-            }else{
-                res.send('<html><head><title>Axosoft Slack Authorized</title></head><body><h1>Authorization failed</h1><br/><h4></h4></body></html>');
-            }
+        helper.retrieveDataFromDataBase(teamId, userId, 'teams')
+        .then(function(returnedDataFromDb){
+          helper.makeRequest("GET", `${returnedDataFromDb.axosoftBaseURL}/api/oauth2/token`, params, function(error, response, body){
+              var Body = JSON.parse(body);
+              if(Body.access_token != null){
+                  helper.saveAxosoftAccessToken(userId, teamId, Body.access_token);
+                  helper.retrieveDataFromDataBase(teamId, userId,"teams")
+                  .then(function(returnedDataFromDb){
+                    slackToken = returnedDataFromDb.slackAccessToken;
+                    helper.sendTextToSlack(slackToken, userId, "Authorization successful!");
+                    res.send('<html><head><title>Axosoft Slack Authorized</title></head><body><h1>Authorization successful</h1><br/><h4>please close this window</h4></body></html>');
+                  }).catch(function(reason){
+                    console.log(reason);
+                  });
+              }else{
+                  res.send('<html><head><title>Axosoft Slack Authorized</title></head><body><h1>Authorization failed</h1><br/><h4></h4></body></html>');
+              }
+          });
+        })
+        .then(function(axoBaseUrl) {
+          
         });
     });
 });

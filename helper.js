@@ -463,42 +463,44 @@ authorizeUser:function(bot, message){
 
 authorizeUserwithoutCollection:function(bot, message, returnedData){
                                   var saveAxoBaseUrl = false;
-                                  var baseUrl, slackToken;
                                   module.exports.retrieveDataFromDataBase(message.team, message.user,"teams")
                                   .then(function(returnedData){
                                       if(returnedData.axosoftBaseURL == undefined){
                                         saveAxoBaseUrl = true;
                                       }
                                       bot.startConversation(message, function(err, convo) {
-                                           if(saveAxoBaseUrl){
-                                              convo.ask("What is the URL or your Axosoft account? i.e. https://example.axosoft.com", function(response, convo) {
-                                                 baseUrl = module.exports.formatAxosoftBaseUrl(response.text.replace(/[<>]/g, ''));
-                                              });
-                                           }else{
-                                              baseUrl = returnedData.axosoftBaseURL;
-                                              slackToken = returnedData.slackAccessToken
-                                           }
-                                            module.exports.makeRequest('GET', baseUrl + '/api/version', {}, function(error, response, body){
-                                              if(!error && response.statusCode == 200){
-                                                var Body = JSON.parse(body);
-                                                if(Body.data.hasOwnProperty("revision") && Body.data.revision >= 11218){
-                                                  var axosoftLoginUrl = module.exports.axosoftLoginUrlBuilder(baseUrl, message);
-                                                  if(saveAxoBaseUrl){
-                                                    module.exports.saveAxosoftUrl(message, baseUrl);
-                                                  }
-                                                  convo.stop();
-                                                  module.exports.sendTextToSlack(slackToken, message.user, `I need permissions to talk to your Axosoft account. <${axosoftLoginUrl}|Click here to Authorize>`);
+                                          convo.ask("What is the URL or your Axosoft account? i.e. https://example.axosoft.com", function(response, convo) {
+                                          var baseUrl = module.exports.formatAxosoftBaseUrl(response.text.replace(/[<>]/g, ''));
+                                          module.exports.makeRequest('GET', baseUrl + '/api/version', {}, function(error, response, body){
+                                            if(!error && response.statusCode == 200){
+                                              var Body = JSON.parse(body);
+                                              if(Body.data.hasOwnProperty("revision") && Body.data.revision >= 11218){
+                                                var axosoftLoginUrl = module.exports.axosoftLoginUrlBuilder(baseUrl, message);
+                                                if(saveAxoBaseUrl){
+                                                  module.exports.saveAxosoftUrl(message, baseUrl);
                                                 }
-                                                else{
-                                                  convo.say("Please upgrade your installation to Axosoft 17 or later");
-                                                  convo.next();
-                                                }
-                                              }else{
-                                                convo.say("Not a valid Axosoft URL");
+                                                convo.stop();
+                                                module.exports.retrieveDataFromDataBase(message.team, message.user,"teams")
+                                                  .then(function(returnedDataFromDb){
+                                                    var slackToken = returnedDataFromDb.slackAccessToken;
+                                                    module.exports.sendTextToSlack(slackToken, message.channel, `I need permissions to talk to your Axosoft account. <${axosoftLoginUrl}|Click here to Authorize>`);
+                                                  })
+                                                  .catch(function(reason){
+                                                    //can not get slackToken from DB
+                                                    module.exports.sendTextToSlack(slackToken, message.channel, "There was an error authorizing your account"); 
+                                                  })
+                                              }
+                                              else{
+                                                convo.say("Please upgrade your installation to Axosoft 17 or later");
                                                 convo.next();
                                               }
-                                            });
-                                         });
+                                            }else{
+                                              convo.say("Not a valid Axosoft URL");
+                                              convo.next();
+                                            }
+                                          });
+                                          });
+                                      });
                                 })
                                   .catch(function(reason){
                                     console.log(reason);
