@@ -78,6 +78,7 @@ attachmentMaker: function (Body, axoBaseUrl, axosoftToken, myKeyWordExists){
                           var parentIds = [];
                           var axosoftData;
                           var indexOfitemsWithParent = [];
+                          const itemsWithParent = [];
 
                           var formatDueDate = function(data){
                                   if((data.percent_complete != "100") && (data.due_date != null)){
@@ -99,7 +100,6 @@ attachmentMaker: function (Body, axoBaseUrl, axosoftToken, myKeyWordExists){
                                 var axosoftData = module.exports.axosoftDataBuilder(axoBaseUrl, Body.data[x]);
                                 if(myKeyWordExists)axosoftData.assigned_to = "";
                                 const extraPromises = [];
-                                const itemsWithParent = [];
 
                                 if (axosoftData.parent.id > 0) {
                                   if((parentIds.indexOf(Body.data[x].parent.id) == -1)){
