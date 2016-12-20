@@ -290,13 +290,14 @@ saveAxosoftAccessToken: function(userId, teamId, accessToken){
                           });
 },
 
+// For beta replace .axosoftbeta.com with .axosoft.com incase they use beta link
 saveAxosoftUrl: function(data, baseUrl) {
                     MongoClient.connect(config.mongoUri, function(err, database){
                         if(err) return console.log(err);
                         database.collection('teams').findAndModify(
                           {id: data.team}, 
                           [],
-                          {$set: {axosoftBaseURL: baseUrl}}, 
+                          {$set: {axosoftBaseURL: baseUrl.replace('axosoftbeta.com', 'axosoft.com')}}, 
                           {},
                           function(err, object) {
                               if (err){
@@ -717,5 +718,9 @@ axosoftApiMethod: function(Axo, itemType){
                         return Axo.axosoftApi.Features;
                       }
 },
+
+replaceAxoUrl: function(url) {
+  return url.replace('.axosoft.com', '.axosoftbeta.com');
+}
 
 };

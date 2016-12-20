@@ -131,7 +131,7 @@ controller.hears('(get my|get) (.*)(items)(.*)',['direct_message,direct_mention,
 
               helper.paramsBuilder(axoBaseUrl, userData.axosoftAccessToken, slackToken, message)
               .then(function(args){
-                  var nodeAxo = new nodeAxosoft(axoBaseUrl, args.access_token);
+                  var nodeAxo = new nodeAxosoft(helper.replaceAxoUrl(axoBaseUrl), args.access_token);
                   var argsArray = [];
                   argsArray.push(args);
 
