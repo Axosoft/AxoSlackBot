@@ -122,14 +122,14 @@ controller.on('rtm_close',function(bot) {
 
 controller.hears('(get my|get) (.*)(items)(.*)',['direct_message,direct_mention,mention'],function(bot, message){
     var channelId = message.channel;
-    helper.checkAxosoftDataForUser(message.team, message.user)
+    helper.checkAxosoftDataForUser(bot, message)
     .then(function(userData){
           helper.retrieveDataFromDataBase(message.team, message.user,"teams")
           .then(function(returnedData){
               var axoBaseUrl = returnedData.axosoftBaseURL;
               var slackToken = returnedData.slackAccessToken;
 
-              helper.paramsBuilder(axoBaseUrl, userData[0], slackToken, message)
+              helper.paramsBuilder(axoBaseUrl, userData.axosoftAccessToken, slackToken, message)
               .then(function(args){
                   var nodeAxo = new nodeAxosoft(axoBaseUrl, args.access_token);
                   var argsArray = [];
@@ -143,20 +143,20 @@ controller.hears('(get my|get) (.*)(items)(.*)',['direct_message,direct_mention,
                           helper.sendTextToSlack(slackToken, channelId, txt);
                       });
                     }else{
-                      helper.sendDataToSlack(slackToken, message, response, axoBaseUrl, userData[0]);
+                      helper.sendDataToSlack(slackToken, message, response, axoBaseUrl, userData.axosoftAccessToken);
                     }
                   })
                   .catch(function(reason){
                     console.log(reason);
                     if(reason.statusCode == 401){ 
-                       helper.authorizeUser(bot,message);
+                       helper.setAxosoftAccessToken(bot,message, axoBaseUrl);
                     }
                   });
              })
              .catch(function(reason){
                console.log(reason);
                if(reason.statusCode == 401){ 
-                 helper.authorizeUser(bot,message);
+                 helper.setAxosoftAccessToken(bot,message, axoBaseUrl);
                }
              });
             })
@@ -167,16 +167,14 @@ controller.hears('(get my|get) (.*)(items)(.*)',['direct_message,direct_mention,
     })
     .catch(function(reason){
       console.log(reason);
-      if(reason == "No collection"){
-         helper.createNewCollection(message)
+      if(reason == "No user"){
+         helper.createNewUser(message)
          .then(function(val){
            helper.authorizeUserwithoutCollection(bot, message);
          }).catch(function(reason){
            console.log("Something went wrong with building a collection for the new user in the database!");
            //TODO not a bad idea to slack the user! 
          })
-      }else{
-         helper.authorizeUser(bot,message);
       }
     });
 });
@@ -217,20 +215,20 @@ controller.hears('(.*)(axo)(d|f|t|i|[]{0})(\\s|[]{0})(\\d+)(.*)',['direct_messag
         item_type = 'incidents';
       }
     
-       helper.checkAxosoftDataForUser(message.team, message.user)
-       .then(function(axosoftToken){
+       helper.checkAxosoftDataForUser(bot, message)
+       .then(function(userData){
             helper.retrieveDataFromDataBase(message.team, message.user,"teams")
             .then(function(returnedData){
                   var axoBaseUrl = returnedData.axosoftBaseURL;
                   var slackToken = returnedData.slackAccessToken;
                   var args = [{
-                    access_token: axosoftToken[0],
+                    access_token: userData.axosoftAccessToken,
                     item_id: item_id,
                     columns: formatColumns(item_type), 
                     page_size: 10
                   }];
 
-                  var nodeAxo = new nodeAxosoft(axoBaseUrl, args[0].access_token);
+                  var nodeAxo = new nodeAxosoft(axoBaseUrl, userData.axosoftAccessToken);
                   nodeAxo.promisify(helper.axosoftApiMethod(nodeAxo, item_type).get, args)
                   .then(function(response){
                       if(response.data.length == 0){
