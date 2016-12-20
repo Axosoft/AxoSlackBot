@@ -817,7 +817,31 @@ filterButtons: function(bot, message, filters){
                       .catch(function(reason){
                           console.log(reason);
                       });
-}
+},
+
+saveAxosoftFilter: function(data){
+                    var userId = data.user.id;
+                    var teamId = data.team.id
+                    MongoClient.connect(config.mongoUri,function(err, database){
+                      if(err){
+                        return console.log(err);
+                      }else{
+                        var test = database.collection('users').findAndModify(
+                           {id: userId, team_id: teamId},
+                           [],
+                           {$set: {axsoftFilter: data.actions[0]}},
+                           {},
+                           function(err, object){
+                              if (err){
+                                  console.warn(err.message); 
+                              }else{
+                                  console.dir(object);
+                              }
+                           }
+                        );
+                      }
+                    });
+},
 
 replaceAxoUrl: function(url) {
   return url.replace('.axosoft.com', '.axosoftbeta.com');

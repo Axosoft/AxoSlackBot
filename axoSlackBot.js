@@ -293,7 +293,7 @@ controller.hears(['filters','Filters','FILTERS'],['direct_message,direct_mention
 //receive an interactive message, and reply with a message that will replace the original
 controller.on('interactive_message_callback', function(bot, message) {
     var data = JSON.parse(message.payload);
-    //TODO save selected filter in database
+    helper.saveAxosoftFilter(data);
     bot.replyInteractive(message, {
         text: `You selected \`${data.actions[0].name}\` filter!`
     });
