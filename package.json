@@ -20,6 +20,9 @@
     "mongodb": "^2.2.10",
     "ncp": "^2.0.0",
     "request": "^2.75.0",
-    "urlencode": "^1.1.0"
+    "urlencode": "^1.1.0",
+    "striptags": "^2.1.1",
+    "node-axosoft": "^1.3.0",
+    "entities": "^1.1.1"
   }
 }
