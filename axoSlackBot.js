@@ -283,10 +283,19 @@ controller.hears('(.*)(axo)(d|f|t|i|[]{0})(\\s|[]{0})(\\d+)(.*)',['direct_messag
 controller.hears(['filters','Filters','FILTERS'],['direct_message,direct_mention,mention'],function(bot, message){
     helper.axosoftFiltersBuilder(message)
     .then(function(axosoftFilters){
-      helper.filterConversation(bot, message, axosoftFilters.data);
+      helper.filterButtons(bot, message, axosoftFilters.data);
     })
     .catch(function(reason){
 
+    });
+});
+
+//receive an interactive message, and reply with a message that will replace the original
+controller.on('interactive_message_callback', function(bot, message) {
+    var data = JSON.parse(message.payload);
+    //TODO save selected filter in database
+    bot.replyInteractive(message, {
+        text: `You selected \`${data.actions[0].name}\` filter!`
     });
 });
 

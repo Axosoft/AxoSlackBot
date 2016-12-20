@@ -99,7 +99,7 @@ attachmentMaker: function (Body, axoBaseUrl, axosoftToken, myKeyWordExists){
                           for (x = 0; x < Body.data.length; x++) {
                                 var axosoftData = module.exports.axosoftDataBuilder(axoBaseUrl, Body.data[x]);
                                 if(myKeyWordExists)axosoftData.assigned_to = "";
-                                const extraPromises = [];
+                                const itemsWithParent = [];
 
                                 if (axosoftData.parent.id > 0) {
                                   if((parentIds.indexOf(Body.data[x].parent.id) == -1)){
@@ -753,7 +753,7 @@ actionArrayMaker: function(filters){
                             "name": `${filters[c].name}`,
                             "text": `${filters[c].name}`,
                             "type": "button",
-                            "value": `${filters[c].name}`
+                            "value": `${filters[c].id}`
                         });
                       }
                       return actions;
@@ -762,12 +762,12 @@ actionArrayMaker: function(filters){
 attachmentsArrayMakerForInteractiveButtons: function(actions){
                                                   var mainArray = [];
                                                   var attachments = [];
-                                                  
+                                                  //TODO 5 should not be hardcoded
                                                   var index = 0;
                                                   for(x=0; x < 5; x++){
                                                       attachments = [{
-                                                          "fallback": "You are unable to choose a game",
-                                                          "callback_id": "wopr_game",
+                                                          "fallback": "You are unable to choose a filter",
+                                                          "callback_id": "select_filter",
                                                           "color": "#3AA3E3",
                                                           "attachment_type": "default",
                                                           "actions":[]
@@ -779,7 +779,7 @@ attachmentsArrayMakerForInteractiveButtons: function(actions){
                                                                   "name": "noFilter",
                                                                   "text": "No Filter",
                                                                   "type": "button",
-                                                                  "style": "danger",
+                                                                  "style": "primary",
                                                                   "value": "noFilter"
                                                            });
                                                            index++;
@@ -799,20 +799,23 @@ attachmentsArrayMakerForInteractiveButtons: function(actions){
                                                   return mainArray;
 },
 
-filterConversation: function(bot, message, filters){
+filterButtons: function(bot, message, filters){
                       var actionsArray = module.exports.actionArrayMaker(filters); 
                       var attachs = module.exports.attachmentsArrayMakerForInteractiveButtons(actionsArray);
-                      bot.startConversation(message, function(err, convo){
-                          convo.ask({
-                              "text": "Which filter would you like to use?",
-                              "attachments": attachs
-                          },[{
-                                  default: true,
-                                  callback: function(reply, convo){
-                                      // do something really cool here 
-                                  }
-                            }]
-                          );
+                      var slackToken;
+                      module.exports.retrieveDataFromDataBase(message.team, message.user,"teams")
+                      .then(function(returnedData){
+                          slackToken = returnedData.slackAccessToken;
+                          var params = {
+                                  token: slackToken,
+                                  channel: message.channel,
+                                  text: "Which filter would you like to use?",
+                                  attachments:JSON.stringify(attachs)
+                          };
+                          module.exports.makeRequest("POST","https://slack.com/api/chat.postMessage", params, function(err, response, body){});
+                      })
+                      .catch(function(reason){
+                          console.log(reason);
                       });
 }
 
