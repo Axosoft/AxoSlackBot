@@ -280,25 +280,6 @@ controller.hears('(.*)(axo)(d|f|t|i|[]{0})(\\s|[]{0})(\\d+)(.*)',['direct_messag
        });
 });
 
-controller.hears(['filters','Filters','FILTERS'],['direct_message,direct_mention,mention'],function(bot, message){
-    helper.axosoftFiltersBuilder(message)
-    .then(function(axosoftFilters){
-      helper.filterButtons(bot, message, axosoftFilters.data);
-    })
-    .catch(function(reason){
-
-    });
-});
-
-//receive an interactive message, and reply with a message that will replace the original
-controller.on('interactive_message_callback', function(bot, message) {
-    var data = JSON.parse(message.payload);
-    helper.saveAxosoftFilter(data);
-    bot.replyInteractive(message, {
-        text: `You selected \`${data.actions[0].name}\` filter!`
-    });
-});
-
 controller.hears(['help','Help','HELP'],['direct_message,direct_mention,mention'],function(bot, message){
     helper.retrieveDataFromDataBase(message.team, message.user,"teams")
     .then(function(returnedData){
@@ -320,6 +301,25 @@ controller.hears(['help','Help','HELP'],['direct_message,direct_mention,mention'
     })
     .catch(function(reason){
        conbsole.log(reason);
+    });
+});
+
+controller.hears(['filters','Filters','FILTERS'],['direct_message,direct_mention,mention'],function(bot, message){
+    helper.axosoftFiltersBuilder(bot, message)
+    .then(function(axosoftFilters){
+      helper.filterButtons(bot, message, axosoftFilters.data);
+    })
+    .catch(function(reason){
+      console.log(reason);
+    });
+});
+
+//receive an interactive message, and reply with a message that will replace the original
+controller.on('interactive_message_callback', function(bot, message) {
+    var data = JSON.parse(message.payload);
+    helper.saveAxosoftFilter(data);
+    bot.replyInteractive(message, {
+        text: `You selected \`${data.actions[0].name}\` filter!`
     });
 });
 

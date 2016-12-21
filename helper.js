@@ -99,7 +99,6 @@ attachmentMaker: function (Body, axoBaseUrl, axosoftToken, myKeyWordExists){
                           for (x = 0; x < Body.data.length; x++) {
                                 var axosoftData = module.exports.axosoftDataBuilder(axoBaseUrl, Body.data[x]);
                                 if(myKeyWordExists)axosoftData.assigned_to = "";
-                                const itemsWithParent = [];
 
                                 if (axosoftData.parent.id > 0) {
                                   if((parentIds.indexOf(Body.data[x].parent.id) == -1)){
@@ -321,9 +320,9 @@ checkAxosoftDataForUser: function(bot, message) {
       .then(function(axosoftAccessToken){
         userData.axosoftAccessToken = axosoftAccessToken;
         if (axosoftAccessToken) {
-        resolve(userData);  
+          resolve(userData);
         }
-        reject('no axosoft access token');
+          reject('no axosoft access token');
         })
         .catch(function(reason){
           console.log(reason);
@@ -333,20 +332,20 @@ checkAxosoftDataForUser: function(bot, message) {
 },
 
 getAxosoftBaseUrl: function(bot, message, database) {
-  return new Promise(function(resolve, reject){
-    database.collection('teams').find({"id":message.team}).toArray(function(err, results){
-      if (!err && results.length > 0) {
-      if (results[0].axosoftBaseURL == undefined) {
-        resolve(module.exports.setAxosoftBaseUrl(bot, message));
-      } else {
-        resolve(results[0].axosoftBaseURL);
-      }
-      } else {
-        console.log(err);
-        reject('Couldn\'t find URL.')
-      }
-    })
-  }); 
+                      return new Promise(function(resolve, reject){
+                          database.collection('teams').find({"id":message.team}).toArray(function(err, results){
+                              if (!err && results.length > 0) {
+                                  if (results[0].axosoftBaseURL == undefined) {
+                                    resolve(module.exports.setAxosoftBaseUrl(bot, message));
+                                  }else{
+                                    resolve(results[0].axosoftBaseURL);
+                                  }
+                              }else{
+                                console.log(err);
+                                reject('Couldn\'t find URL.')
+                              }
+                          });
+                      }); 
 },
 
 getAxosoftAccessToken: function(bot, message, database, axosoftBaseURL) {
@@ -457,30 +456,30 @@ setAxosoftAccessToken:function(bot, message, axosoftUrl){
 },
 
 setAxosoftBaseUrl: function(bot, message){
-                       return new Promise(function(resolve, reject){
+                      return new Promise(function(resolve, reject){
                             bot.startConversation(message, function(err, convo){
-                               convo.ask("Can you tell me the URL of your Axosoft account? i.e. https://example.axosoft.com", function(response, convo){
-                                  var baseUrl = module.exports.formatAxosoftBaseUrl(response.text.replace(/[<>]/g, ''));
-                                  module.exports.makeRequest('GET', baseUrl + '/api/version', {}, function(error, response, body){
-                                    if(!error && response.statusCode == 200){
-                                        var Body = JSON.parse(body);
-                                        if(Body.data.hasOwnProperty("revision") && Body.data.revision >= 11218){
-                                          var axosoftLoginUrl = module.exports.axosoftLoginUrlBuilder(baseUrl, message);
-                                            module.exports.saveAxosoftUrl(message, baseUrl);
-                                            resolve(baseUrl);
-                                          convo.stop();
-                                        } else {
-                                          convo.say("I can only talk to Axosoft v17 or later.  Please upgrade your Axosoft version.");
+                                convo.ask("Can you tell me the URL of your Axosoft account? i.e. https://example.axosoft.com", function(response, convo){
+                                    var baseUrl = module.exports.formatAxosoftBaseUrl(response.text.replace(/[<>]/g, ''));
+                                    module.exports.makeRequest('GET', baseUrl + '/api/version', {}, function(error, response, body){
+                                       if(!error && response.statusCode == 200){
+                                          var Body = JSON.parse(body);
+                                          if(Body.data.hasOwnProperty("revision") && Body.data.revision >= 11218){
+                                            var axosoftLoginUrl = module.exports.axosoftLoginUrlBuilder(baseUrl, message);
+                                              module.exports.saveAxosoftUrl(message, baseUrl);
+                                              resolve(baseUrl);
+                                              convo.stop();
+                                            }else{
+                                              convo.say("I can only talk to Axosoft v17 or later.  Please upgrade your Axosoft version.");
+                                              convo.next();
+                                            }
+                                        }else{
+                                          convo.say("This doesn't seem to be an Axosoft URL");
                                           convo.next();
                                         }
-                                    }else{
-                                        convo.say("This doesn't seem to be an Axosoft URL");
-                                        convo.next();
-                                    }
-                                  });
-                                });
+                                    });
+                                 });
                             });
-                        });
+                      });
 },
 
 authorizeUserwithoutCollection:function(bot, message, returnedData){
@@ -718,20 +717,20 @@ axosoftApiMethod: function(Axo, itemType){
                       }
 },
 
-axosoftFiltersBuilder: function(message){
+axosoftFiltersBuilder: function(bot, message){
                           return new Promise(function(resolve, reject){
-                              module.exports.checkAxosoftDataForUser(message.team, message.user)
+                              module.exports.checkAxosoftDataForUser(bot, message)
                               .then(function(axosoftData){
-                                var nodeAxo = new nodeAxosoft(axosoftData[1], axosoftData[0]);
-                                var argArray = ["features"];
-                                nodeAxo.promisify(nodeAxo.axosoftApi.Filters.get, argArray)
-                                .then(function(filters){
-                                  resolve(filters);
-                                })
-                                .catch(function(reason){
-                                  console.log(reason);
-                                  reject(reason);
-                                });
+                                 var nodeAxo = new nodeAxosoft(axosoftData.axosoftBaseURL, axosoftData.axosoftAccessToken);
+                                 var argArray = ["features"];
+                                 nodeAxo.promisify(nodeAxo.axosoftApi.Filters.get, argArray)
+                                 .then(function(filters){
+                                   resolve(filters);
+                                 })
+                                 .catch(function(reason){
+                                   console.log(reason);
+                                   reject(reason);
+                                 });
                               })
                               .catch(function(reason){
                                   console.log(reason);
@@ -821,7 +820,9 @@ filterButtons: function(bot, message, filters){
 
 saveAxosoftFilter: function(data){
                     var userId = data.user.id;
-                    var teamId = data.team.id
+                    var teamId = data.team.id;
+                    //TODO make sure document exists before you store the axosoftFilter in da database
+                    
                     MongoClient.connect(config.mongoUri,function(err, database){
                       if(err){
                         return console.log(err);
