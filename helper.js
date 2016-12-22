@@ -39,15 +39,15 @@ formatText: function(body, message){
 
                 if(message.text.match('(.*)(page)(\\s)(\\d+)(.*)') != null){
                   if(message.text.includes("closed")){
-                    return `${txt} ${txt} items [in the last 30 days], page ${message.text.match('(.*)(page)(\\s)(\\d+)(.*)')[4]} of ${pageNumber}`
+                    return `${txt} ${txt} items [in the last 30 days], page (${message.text.match('(.*)(page)(\\s)(\\d+)(.*)')[4]} of ${pageNumber})`
                   }else{
-                    return `${txt} items ${message.text.match('(.*)(page)(\\s)(\\d+)(.*)')[4]} of ${pageNumber}`;
+                    return `${txt} items (${message.text.match('(.*)(page)(\\s)(\\d+)(.*)')[4]} of ${pageNumber})`;
                   }
                 }else{
                   if(message.text.includes("closed")){
-                    return (pageNumber>1) ? txt = txt + `items [in the last 30 days], page 1 of ${pageNumber}` : txt = txt + "items [in the last 30 days]";
+                    return (pageNumber>1) ? txt = txt + `items [in the last 30 days], page (1 of ${pageNumber})` : txt = txt + "items [in the last 30 days]";
                   }else if(pageNumber>1){
-                    return `${txt} items page 1 of ${pageNumber}`;
+                    return `${txt} items page (1 of ${pageNumber})`;
                   }else{
                     return `${txt} items`;
                   }
