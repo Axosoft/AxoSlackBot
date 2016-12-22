@@ -30,8 +30,12 @@ sendTextToSlack: function(slackToken, channelId, txt){
 formatText: function(body, message){
                 var pageNumber = Math.ceil((body.metadata.total_count/body.metadata.page_size));
                 var txt = "Here are";
-                if(message.text.includes("my")) txt = txt + " your";
-                txt = txt + " " +  message.match[2];
+                var addWhiteSpace = true;
+                if(message.text.includes("my")){
+                   txt = txt + " your";
+                   addWhiteSpace = false;
+                }
+                addWhiteSpace ? txt = txt + message.match[2] : txt = txt + " " + message.match[2];
 
                 if(message.text.match('(.*)(page)(\\s)(\\d+)(.*)') != null){
                   if(message.text.includes("closed")){
