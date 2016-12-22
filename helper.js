@@ -166,21 +166,23 @@ attachmentMakerForHelpOptions: function(){
                                   return new Promise(function(resolve, reject){
                                       var options = [
                                         "*axo + ID:* Shows detals of a single item, e.g. axo 5 (works in any room the Axosoft bot is in)",
-                                        
+
                                         "*get my items:* List of items currently assigned to you"
                                         + "\n*get my updated items:* List of your most recently updated items"
                                         + "\n*get my upcoming items:* List of your open items due in the next 2 weeks"
                                         + "\n*get my closed items:* List of your items closed in the last 30 days"
                                         + "\n*get my open items:* List of your items not yet completed"
                                         + "\n*get my ranked items:* List of your items sorted by rank",
-                                        
+
                                         "*get updated items:* List of all most recently updated items"
                                         + "\n*get upcoming items:* List of all open items due in the next 2 weeks"
                                         + "\n*get closed items:* List of all items closed in the last 30 days"
                                         + "\n*get open items:* List of all items not yet completed"
                                         + "\n*get ranked items:* List of all items sorted by rank",
-                                        
-                                        "Add 'page #' after any command to view items on that page, e.g. `get my upcoming items page 2`"
+
+                                        "Add 'page #' after any command to view items on that page, e.g. `get my upcoming items page 2`",
+
+                                        'For any questions or feedback, contact <https://support.axosoft.com/|success@axosoft.com>'
                                       ];
 
                                       var helpOpptionsArray = [];
