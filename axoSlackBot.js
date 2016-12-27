@@ -122,44 +122,50 @@ controller.on('rtm_close',function(bot) {
 
 controller.hears('(get my|get) (.*)(items)(.*)',['direct_message,direct_mention,mention,ambient'],function(bot, message){
     var channelId = message.channel;
+    var validNumber = helper.validateRequstedPageNumber(message.match);
+
     helper.checkAxosoftDataForUser(bot, message)
     .then(function(userData){
           helper.retrieveDataFromDataBase(message.team, message.user,"teams")
           .then(function(returnedData){
-              var axoBaseUrl = returnedData.axosoftBaseURL;
-              var slackToken = returnedData.slackAccessToken;
+                var axoBaseUrl = returnedData.axosoftBaseURL;
+                var slackToken = returnedData.slackAccessToken;
 
-              helper.paramsBuilder(axoBaseUrl, userData.axosoftAccessToken, slackToken, message)
-              .then(function(args){
-                  var nodeAxo = new nodeAxosoft(helper.replaceAxoUrl(axoBaseUrl), args.access_token);
-                  var argsArray = [];
-                  argsArray.push(args);
+                if(validNumber){
+                     helper.paramsBuilder(axoBaseUrl, userData.axosoftAccessToken, slackToken, message)
+                      .then(function(args){
+                          var nodeAxo = new nodeAxosoft(helper.replaceAxoUrl(axoBaseUrl), args.access_token);
+                          var argsArray = [];
+                          argsArray.push(args);
 
-                  nodeAxo.promisify(nodeAxo.axosoftApi.Features.get, argsArray) 
-                  .then(function(response){
-                    if(response.data.length == 0){
-                      helper.textBuilder(message)
-                      .then(function(txt){
-                          helper.sendTextToSlack(slackToken, channelId, txt);
+                          nodeAxo.promisify(nodeAxo.axosoftApi.Features.get, argsArray) 
+                          .then(function(response){
+                            if(response.data.length == 0){
+                              helper.textBuilder(message)
+                              .then(function(txt){
+                                  helper.sendTextToSlack(slackToken, channelId, txt);
+                              });
+                            }else{
+                              helper.sendDataToSlack(slackToken, message, response, axoBaseUrl, userData.axosoftAccessToken);
+                            }
+                          })
+                          .catch(function(reason){
+                            console.log(reason);
+                            if(reason.statusCode == 401){
+                              helper.setAxosoftAccessToken(bot,message, axoBaseUrl);
+                            }
+                          });
+                      })
+                      .catch(function(reason){
+                        console.log(reason);
+                        if(reason.statusCode == 401){
+                          helper.setAxosoftAccessToken(bot,message, axoBaseUrl);
+                        }
                       });
-                    }else{
-                      helper.sendDataToSlack(slackToken, message, response, axoBaseUrl, userData.axosoftAccessToken);
-                    }
-                  })
-                  .catch(function(reason){
-                    console.log(reason);
-                    if(reason.statusCode == 401){ 
-                       helper.setAxosoftAccessToken(bot,message, axoBaseUrl);
-                    }
-                  });
-             })
-             .catch(function(reason){
-               console.log(reason);
-               if(reason.statusCode == 401){ 
-                 helper.setAxosoftAccessToken(bot,message, axoBaseUrl);
-               }
-             });
-            })
+                }else{
+                   helper.sendTextToSlack(slackToken, channelId, "Not a valid page number! :ghost:");
+                }
+          })
           .catch(function(reason){
               //axosoftBaseURL does not exists!
               console.log(reason);

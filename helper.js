@@ -560,9 +560,9 @@ paramsBuilder: function(axosoftUrl, axosoftToken, slackToken, message){
                       //paging
                       var page = 1;
                       var pageMatches = message.text.match(/(.*)(page\s)(\d+)/i);
-                      if (pageMatches) {
+                      if (pageMatches){
                         page = pageMatches[3];
-                        params.page = page;
+                          params.page = page;
                       }
 
                       if(keyWord == 'open '){
@@ -851,7 +851,20 @@ saveAxosoftFilter: function(data){
 },
 
 replaceAxoUrl: function(url) {
-  return url.replace('.axosoft.com', '.axosoftbeta.com');
+                  return url.replace('.axosoft.com', '.axosoftbeta.com');
+},
+
+validateRequstedPageNumber: function(message){
+                              if(message[4].toLowerCase().includes("page")){
+                                var pagingText = message[4].match(/(.*)(page\s)((-[0-9]+)|([0-9]+))/);
+                                if(pagingText != null && pagingText[5] != 0 && pagingText[5] < 2147483647){
+                                  return true;
+                                }else{
+                                  return false;
+                                }
+                              }else{
+                                return true;
+                              }
 }
 
 };
