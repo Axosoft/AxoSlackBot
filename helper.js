@@ -624,27 +624,31 @@ formatAxosoftItemData: function(item){
     short: true
   });
 
-    fieldsArray.push({
+  fieldsArray.push({
     title: 'Release',
     value: item['release'],
     short: true
   });
-    fieldsArray.push({
+
+  fieldsArray.push({
     title: 'Workflow Step',
     value: item['workflow_step'],
     short: true
   });
-    fieldsArray.push({
+
+  fieldsArray.push({
     title: 'Assigned To',
     value: item['assigned_to'],
     short: true
   });
-    fieldsArray.push({
+
+  fieldsArray.push({
     title: 'Priority',
     value: item['priority'],
     short: true
   });
-    fieldsArray.push({
+
+  fieldsArray.push({
     title: 'Remaining Estimate',
     value: item['remaining_duration']['duration_text'],
     short: true
@@ -652,26 +656,28 @@ formatAxosoftItemData: function(item){
 
   if (item['parent']['id'] > 0 ){
     fieldsArray.push({
-    title: 'Parent',
-    value: `<${item.parent_link}|${item.parent.id}>`,
-    short: true
+      title: 'Parent',
+      value: `<${item.parent_link}|${item.parent.id}>`,
+      short: true
     });
   }
 
   //if work item type exists
-  if (item['custom_fields'] != undefined) {
+  if(item['custom_fields'] != undefined){
     fieldsArray.push({
-    title: 'Work Item Type',
-    value: item['custom_fields'],
-    short: true
-  });
+      title: 'Work Item Type',
+      value: item['custom_fields'],
+      short: true
+    });
   }
 
+  if(item.hasOwnProperty("description")){
     fieldsArray.push({
-    title: 'Description',
-    value: module.exports.trimDescription(item['description']),
-    short: false
-  });
+      title: 'Description',
+      value: module.exports.trimDescription(item['description']),
+      short: false
+    });
+  }
 
   return fieldsArray;
 },
@@ -695,9 +701,8 @@ axosoftDataBuilder: function(baseUrl, data){
                         axosoftData.parent_link = `${baseUrl}/viewitem?id=${data.parent.id}&type=${data.item_type}&force_use_number=true/`;
                         for(z=0; z < Object.keys(data).length; z++){
                             propertyName = Object.keys(data)[z];
-                            if(data[propertyName] == null || data[propertyName] == ""){
-                              axosoftData[propertyName] = "";
-                            }else{
+
+                            if(!(data[propertyName] === null) && !(data[propertyName] === "")){
                                 if(data[propertyName].hasOwnProperty("name")){
                                   axosoftData[propertyName] = (data[propertyName].name == null) ? "" : data[propertyName].name;
                                 }else if(propertyName == "description"){
