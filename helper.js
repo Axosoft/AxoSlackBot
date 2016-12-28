@@ -315,26 +315,26 @@ saveAxosoftUrl: function(data, baseUrl) {
 },
 
 checkAxosoftDataForUser: function(bot, message) {
-  var userData = {};
-  return new Promise(function(resolve, reject) {
-    MongoClient.connect(config.mongoUri, function(err, database){
-      module.exports.getAxosoftBaseUrl(bot, message, database)
-      .then(function(axosoftBaseURL){
-        userData.axosoftBaseURL = axosoftBaseURL;
-        var axosoftAccessToken = module.exports.getAxosoftAccessToken(bot, message, database, axosoftBaseURL)
-        return axosoftAccessToken})
-      .then(function(axosoftAccessToken){
-        userData.axosoftAccessToken = axosoftAccessToken;
-        if (axosoftAccessToken) {
-          resolve(userData);
-        }
-          reject('no axosoft access token');
-        })
-        .catch(function(reason){
-          console.log(reason);
-        });
-      });
-    });
+                            var userData = {};
+                            return new Promise(function(resolve, reject) {
+                              MongoClient.connect(config.mongoUri, function(err, database){
+                                module.exports.getAxosoftBaseUrl(bot, message, database)
+                                .then(function(axosoftBaseURL){
+                                  userData.axosoftBaseURL = axosoftBaseURL;
+                                  var axosoftAccessToken = module.exports.getAxosoftAccessToken(bot, message, database, axosoftBaseURL)
+                                  return axosoftAccessToken})
+                                .then(function(axosoftAccessToken){
+                                  userData.axosoftAccessToken = axosoftAccessToken;
+                                  if(axosoftAccessToken){
+                                    resolve(userData);
+                                  }
+                                    reject('no axosoft access token');
+                                  })
+                                  .catch(function(reason){
+                                    console.log(reason);
+                                  });
+                                });
+                              });
 },
 
 getAxosoftBaseUrl: function(bot, message, database) {
@@ -355,23 +355,23 @@ getAxosoftBaseUrl: function(bot, message, database) {
 },
 
 getAxosoftAccessToken: function(bot, message, database, axosoftBaseURL) {
-  return new Promise(function(resolve, reject){
-  database.collection('users').find({"id":message.user}).toArray(function(err, results){
-    if (!err & results.length > 0 ) {
-      if (results[0].axosoftAccessToken == undefined) {
-      module.exports.setAxosoftAccessToken(bot, message, axosoftBaseURL);
-    } else {
-      resolve(results[0].axosoftAccessToken);
-      }
-    } else {
-      module.exports.createNewUser(message)
-      .then(function(){
-        module.exports.setAxosoftAccessToken(bot, message, axosoftBaseURL);
-      })
-      reject('No user');      
-    }
-    })      
-  })
+                          return new Promise(function(resolve, reject){
+                            database.collection('users').find({"id":message.user}).toArray(function(err, results){
+                                if(!err & results.length > 0){
+                                    if(results[0].axosoftAccessToken == undefined){
+                                      module.exports.setAxosoftAccessToken(bot, message, axosoftBaseURL);
+                                    }else{
+                                      resolve(results[0].axosoftAccessToken);
+                                    }
+                                }else{
+                                  module.exports.createNewUser(message)
+                                  .then(function(){
+                                    module.exports.setAxosoftAccessToken(bot, message, axosoftBaseURL);
+                                  })
+                                  reject('No user');
+                                }
+                              })
+                          });
 },
 
 retrieveDataFromDataBase: function(slackTeamId, slackUserId, documentName){
@@ -648,11 +648,13 @@ formatAxosoftItemData: function(item){
     short: true
   });
 
-  fieldsArray.push({
-    title: 'Remaining Estimate',
-    value: item['remaining_duration']['duration_text'],
-    short: true
-  });
+  if(item.hasOwnProperty("remaining_duration")){
+    fieldsArray.push({
+      title: 'Remaining Estimate',
+      value: item['remaining_duration']['duration_text'],
+      short: true
+    });
+  }
 
   if (item['parent']['id'] > 0 ){
     fieldsArray.push({
