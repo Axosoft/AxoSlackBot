@@ -436,9 +436,13 @@ createNewUser: function(message){
 },
 
 formatAxosoftBaseUrl: function(url){
-                        if(url.indexOf("https") == -1 && url.indexOf("http") == -1){
+                        if(url.indexOf("https://") == -1 && url.indexOf("http://") == -1){
                           return url = "https://"+url;
-                        }else{
+                        }
+                        // breaks if using http for hosted accnts 
+                        else if (url.indexOf("http://") > -1 && url.indexOf(".axosoft.com") > -1){
+                          return url.replace("http://", "https://")
+                        } else {
                           return url;
                         }
 },
