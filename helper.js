@@ -28,34 +28,31 @@ sendTextToSlack: function(slackToken, channelId, txt){
 },
 
 formatText: function(body, message){
-                var pageNumber = Math.ceil((body.metadata.total_count/body.metadata.page_size));
-                var txt = "Here are";
-                var addWhiteSpace = true;
-                if(message.text.includes("my")){
-                   txt = txt + " your";
+                var pageTotal = Math.ceil((body.metadata.total_count/body.metadata.page_size));
+                var txt = "Here are ";
+                if(message.text.includes("my ")){
+                   txt = txt + "your ";
                    addWhiteSpace = false;
                 }
-                addWhiteSpace ? txt = txt + message.match[2] : txt = txt + " " + message.match[2];
 
                 if(message.text.match('(.*)(page)(\\s)(\\d+)(.*)') != null){
                   if(message.text.includes("closed")){
-                    return `${txt} ${txt} items [in the last 30 days], page (${message.text.match('(.*)(page)(\\s)(\\d+)(.*)')[4]} of ${pageNumber})`
+                    return `${txt}items [in the last 30 days] (page ${message.text.match('(.*)(page)(\\s)(\\d+)(.*)')[4]} of ${pageTotal})`
                   }else{
-                    return `${txt} items (${message.text.match('(.*)(page)(\\s)(\\d+)(.*)')[4]} of ${pageNumber})`;
+                    return `${txt}items (page ${message.text.match('(.*)(page)(\\s)(\\d+)(.*)')[4]} of ${pageTotal})`;
                   }
                 }else{
                   if(message.text.includes("closed")){
-                    return (pageNumber>1) ? txt = txt + `items [in the last 30 days], page (1 of ${pageNumber})` : txt = txt + "items [in the last 30 days]";
-                  }else if(pageNumber>1){
-                    return `${txt} items page (1 of ${pageNumber})`;
+                    return (pageTotal>1) ? txt = txt + `items [in the last 30 days], (page 1 of ${pageTotal})` : txt = txt + "items [in the last 30 days]";
+                  }else if(pageTotal>1){
+                    return `${txt}items (page 1 of ${pageTotal})`;
                   }else{
-                    return `${txt} items`;
+                    return `${txt}items`;
                   }
                 }
 },
 
 sendDataToSlack: function(slackAccessToken, message, body, axoBaseUrl, axosoftToken){
-                    var pageNumber = Math.ceil((body.metadata.total_count/body.metadata.page_size));
                     var myKeyWordTypedByUser = false;
                     if(message.match[1].includes("my")){
                       myKeyWordTypedByUser = true;
@@ -542,7 +539,7 @@ textBuilder: function(message){
                               else return "";
                             };
                             var ofYourConditional = message.match.input.includes("my") ? 'of your ' : '';
-                            var baseTxt = `I could not find any ${ofYourConditional}${requestedKeyWord(message.match[2])}${' ' + requestedKeyWord(message.match[3])}`;
+                            var baseTxt = `I could not find any ${ofYourConditional}${requestedKeyWord(message.match[2])}${requestedKeyWord(message.match[3])}`;
                             resolve(baseTxt);
                 });
 },
