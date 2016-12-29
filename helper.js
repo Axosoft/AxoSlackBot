@@ -29,17 +29,21 @@ sendTextToSlack: function(slackToken, channelId, txt){
 
 formatText: function(body, message){
                 var pageTotal = Math.ceil((body.metadata.total_count/body.metadata.page_size));
+                var page = body.metadata.page === 0 ? 1 : body.metadata.page;
                 var txt = "Here are ";
                 if(message.text.includes("my ")){
                    txt = txt + "your ";
                    addWhiteSpace = false;
                 }
+                if (message.match[2].length > 0) {
+                  txt += message.match[2];
+                }
 
                 if(message.text.match('(.*)(page)(\\s)(\\d+)(.*)') != null){
                   if(message.text.includes("closed")){
-                    return `${txt}items [in the last 30 days] (page ${message.text.match('(.*)(page)(\\s)(\\d+)(.*)')[4]} of ${pageTotal})`
+                    return `${txt}items [in the last 30 days] (page ${page} of ${pageTotal})`
                   }else{
-                    return `${txt}items (page ${message.text.match('(.*)(page)(\\s)(\\d+)(.*)')[4]} of ${pageTotal})`;
+                    return `${txt}items (page ${page} of ${pageTotal})`;
                   }
                 }else{
                   if(message.text.includes("closed")){
