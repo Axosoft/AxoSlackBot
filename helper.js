@@ -178,6 +178,8 @@ attachmentMakerForHelpOptions: function(){
                                         + "\n*get ranked items:* List of all items sorted by rank",
 
                                         "Add 'page #' after any command to view items on that page, e.g. `get my upcoming items page 2`",
+                                        
+                                        "*update url:* Updates URL to your Axosoft account",
 
                                         'For any questions or feedback, contact <https://support.axosoft.com/|success@axosoft.com>'
                                       ];
@@ -616,38 +618,43 @@ getParamsFromQueryString: function(query){
 formatAxosoftItemData: function(item){
   var fieldsArray = [];
 
-  fieldsArray.push({
+  Array.prototype.attachData = function(obj){
+  if(obj.value.length > 0)
+  this.push(obj);
+};
+
+  fieldsArray.attachData({
     title: 'Project',
     value: item['project'],
     short: true
   });
 
-  fieldsArray.push({
+  fieldsArray.attachData({
     title: 'Release',
     value: item['release'],
     short: true
   });
 
-  fieldsArray.push({
+  fieldsArray.attachData({
     title: 'Workflow Step',
     value: item['workflow_step'],
     short: true
   });
 
-  fieldsArray.push({
+  fieldsArray.attachData({
     title: 'Assigned To',
     value: item['assigned_to'],
     short: true
   });
 
-  fieldsArray.push({
+  fieldsArray.attachData({
     title: 'Priority',
     value: item['priority'],
     short: true
   });
 
   if(item.hasOwnProperty("remaining_duration")){
-    fieldsArray.push({
+    fieldsArray.attachData({
       title: 'Remaining Estimate',
       value: item['remaining_duration']['duration_text'],
       short: true
@@ -655,7 +662,7 @@ formatAxosoftItemData: function(item){
   }
 
   if (item['parent']['id'] > 0 ){
-    fieldsArray.push({
+    fieldsArray.attachData({
       title: 'Parent',
       value: `<${item.parent_link}|${item.parent.id}>`,
       short: true
@@ -664,7 +671,7 @@ formatAxosoftItemData: function(item){
 
   //if work item type exists
   if(item['custom_fields'] != undefined){
-    fieldsArray.push({
+    fieldsArray.attachData({
       title: 'Work Item Type',
       value: item['custom_fields'],
       short: true
@@ -672,7 +679,7 @@ formatAxosoftItemData: function(item){
   }
 
   if(item.hasOwnProperty("description")){
-    fieldsArray.push({
+    fieldsArray.attachData({
       title: 'Description',
       value: module.exports.trimDescription(item['description']),
       short: false

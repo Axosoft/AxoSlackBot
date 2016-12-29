@@ -249,6 +249,7 @@ controller.hears('(.*)(axo)(d|f|t|i|[]{0})(\\s|[]{0})(\\d+)(.*)',['direct_messag
                                     mrkdwn: true,
                                     attachments:JSON.stringify([{
                                         color: "#38B040",
+                                        fallback: `${axosoftData.number}: ${axosoftData.name}`,
                                         text: `<${axosoftData.link}|${axosoftData.number}>: ${axosoftData.name}${axosoftData.has_attachments ? ' :paperclip:' : ''}`,
                                         fields: helper.formatAxosoftItemData(axosoftData),
                                         mrkdwn_in:["text"]
@@ -260,7 +261,7 @@ controller.hears('(.*)(axo)(d|f|t|i|[]{0})(\\s|[]{0})(\\d+)(.*)',['direct_messag
                         .catch(function(error){
                           console.log(error.statusCode);
                           if(error.statusCode == 401){
-                            helper.authorizeUser(bot,message);
+                            helper.setAxosoftAccessToken(bot,message, axoBaseUrl);
                           }
                         });
                   }
@@ -280,8 +281,6 @@ controller.hears('(.*)(axo)(d|f|t|i|[]{0})(\\s|[]{0})(\\d+)(.*)',['direct_messag
                 //TODO not a bad idea to slack user! 
                 console.log("Something went wrong with building a collection for the new user in the database!");
               })
-            }else{
-              helper.authorizeUser(bot, message);
             }
        });
 });
