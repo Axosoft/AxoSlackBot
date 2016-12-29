@@ -166,7 +166,7 @@ attachmentMaker: function (Body, axoBaseUrl, axosoftToken, myKeyWordExists){
 attachmentMakerForHelpOptions: function(){
                                   return new Promise(function(resolve, reject){
                                       var options = [
-                                        "*axo + ID:* Shows detals of a single item, e.g. axo 5 (works in any room the Axosoft bot is in)",
+                                        "*axo + ID:* Shows details of a single item, e.g. axo 5 (works in any room the Axosoft bot is in)",
 
                                         "*get my items:* List of items currently assigned to you"
                                         + "\n*get my updated items:* List of your most recently updated items"
