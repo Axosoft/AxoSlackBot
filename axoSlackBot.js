@@ -276,29 +276,8 @@ controller.hears('(.*)(axo)(d|f|t|i|[]{0})(\\s|[]{0})(\\d+)(.*)',['direct_messag
        });
 });
 
-controller.hears(['update url','Update Url','UPDATE URL'],['direct_message,direct_mention,mention'],function(bot, message){
-    bot.startConversation(message, function(err, convo){
-        convo.ask("Can you tell me the URL of your Axosoft account? i.e. https://example.axosoft.com", function(response, convo){
-            var baseUrl = helper.formatAxosoftBaseUrl(response.text.replace(/[<>]/g, ''));
-            helper.makeRequest('GET', baseUrl + '/api/version', {}, function(error, response, body){
-                if(!error && response.statusCode == 200){
-                  var Body = JSON.parse(body);
-                  if(Body.data.hasOwnProperty("revision") && Body.data.revision >= 11218){
-                    var axosoftLoginUrl = helper.axosoftLoginUrlBuilder(baseUrl, message);
-                      helper.saveAxosoftUrl(message, baseUrl);
-                      convo.say("Your base url got updated!");
-                      convo.next();
-                    }else{
-                      convo.say("I can only talk to Axosoft v17 or later.  Please upgrade your Axosoft version.");
-                      convo.next();
-                    }
-                }else{
-                  convo.say("This doesn't seem to be an Axosoft URL");
-                  convo.next();
-                }
-            });
-          });
-    });
+controller.hears([/update url/i],['direct_message,direct_mention,mention'],function(bot, message){
+    helper.setAxosoftBaseUrl(bot, message);
 });
 
 controller.hears(['help','Help','HELP'],['direct_message,direct_mention,mention'],function(bot, message){

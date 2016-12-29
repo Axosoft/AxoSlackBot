@@ -469,7 +469,8 @@ bot.startConversation(message, function(err, convo) {
               var axosoftLoginUrl = module.exports.axosoftLoginUrlBuilder(baseUrl, message);
                 module.exports.saveAxosoftUrl(message, baseUrl);
                 resolve(baseUrl);
-              convo.stop();
+                convo.say("Got it :ok_hand:");
+                convo.next();
             } else {
               convo.say("I can only talk to Axosoft v17 or later.  Please upgrade your Axosoft version.");
               convo.next();
