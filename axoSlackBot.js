@@ -34,7 +34,7 @@ controller.setupWebserver(config.port,function(err,webserver) {
       if (err) {
         res.status(500).send('ERROR: ' + err);
       } else {
-        res.redirect('https://www.axosoft.com/status/slack-status?success=true');
+        res.send('<html><body><script>window.location = "https://www.axosoft.com/status/slack-status?success=true"</script></body></html>');
       }
     });
 
@@ -64,12 +64,12 @@ controller.setupWebserver(config.port,function(err,webserver) {
                   .then(function(returnedDataFromDb){
                     slackToken = returnedDataFromDb.slackAccessToken;
                     helper.sendTextToSlack(slackToken, userId, "Authorization successful!");
-                    res.redirect('https://www.axosoft.com/status/slack-status?success=true');
+                    res.send('<html><body><script>window.location = "https://www.axosoft.com/status/slack-status?success=true"</script></body></html>');//  .redirect('https://www.axosoft.com/status/slack-status?success=true');
                   }).catch(function(reason){
                     console.log(reason);
                   });
               }else{
-                  res.redirect('https://www.axosoft.com/status/slack-status?success=false');
+                  res.send('<html><body><script>window.location = "https://www.axosoft.com/status/slack-status?success=false"</script></body></html>');//  .redirect('https://www.axosoft.com/status/slack-status?success=true');
               }
           });
         })
