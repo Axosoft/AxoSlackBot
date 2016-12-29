@@ -286,6 +286,10 @@ controller.hears('(.*)(axo)(d|f|t|i|[]{0})(\\s|[]{0})(\\d+)(.*)',['direct_messag
        });
 });
 
+controller.hears([/update url/i],['direct_message,direct_mention,mention'],function(bot, message){
+    helper.setAxosoftBaseUrl(bot, message);
+});
+
 controller.hears(['help','Help','HELP'],['direct_message,direct_mention,mention'],function(bot, message){
     helper.retrieveDataFromDataBase(message.team, message.user,"teams")
     .then(function(returnedData){

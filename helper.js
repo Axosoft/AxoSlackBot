@@ -462,30 +462,31 @@ setAxosoftAccessToken:function(bot, message, axosoftUrl){
 },
 
 setAxosoftBaseUrl: function(bot, message){
-                      return new Promise(function(resolve, reject){
-                            bot.startConversation(message, function(err, convo){
-                                convo.ask("Can you tell me the URL of your Axosoft account? i.e. https://example.axosoft.com", function(response, convo){
-                                    var baseUrl = module.exports.formatAxosoftBaseUrl(response.text.replace(/[<>]/g, ''));
-                                    module.exports.makeRequest('GET', baseUrl + '/api/version', {}, function(error, response, body){
-                                       if(!error && response.statusCode == 200){
-                                          var Body = JSON.parse(body);
-                                          if(Body.data.hasOwnProperty("revision") && Body.data.revision >= 11218){
-                                            var axosoftLoginUrl = module.exports.axosoftLoginUrlBuilder(baseUrl, message);
-                                              module.exports.saveAxosoftUrl(message, baseUrl);
-                                              resolve(baseUrl);
-                                              convo.stop();
-                                            }else{
-                                              convo.say("I can only talk to Axosoft v17 or later.  Please upgrade your Axosoft version.");
-                                              convo.next();
-                                            }
-                                        }else{
-                                          convo.say("This doesn't seem to be an Axosoft URL");
-                                          convo.next();
-                                        }
-                                    });
-                                 });
-                            });
-                      });
+  return new Promise(function(resolve, reject) {
+bot.startConversation(message, function(err, convo) {
+        convo.ask("Can you tell me the URL of your Axosoft account? i.e. https://example.axosoft.com", function(response, convo) {
+        var baseUrl = module.exports.formatAxosoftBaseUrl(response.text.replace(/[<>]/g, ''));
+        module.exports.makeRequest('GET', baseUrl + '/api/version', {}, function(error, response, body){
+          if(!error && response.statusCode == 200){
+            var Body = JSON.parse(body);
+            if(Body.data.hasOwnProperty("revision") && Body.data.revision >= 11218){
+              var axosoftLoginUrl = module.exports.axosoftLoginUrlBuilder(baseUrl, message);
+                module.exports.saveAxosoftUrl(message, baseUrl);
+                resolve(baseUrl);
+                convo.say("Got it :ok_hand:");
+                convo.next();
+            } else {
+              convo.say("I can only talk to Axosoft v17 or later.  Please upgrade your Axosoft version.");
+              convo.next();
+            }
+          }else{
+            convo.say("This doesn't seem to be an Axosoft URL");
+            convo.next();
+          }
+        });
+        });
+    });
+  });
 },
 
 authorizeUserwithoutCollection:function(bot, message, returnedData){
