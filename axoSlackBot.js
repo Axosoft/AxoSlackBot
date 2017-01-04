@@ -330,10 +330,22 @@ controller.hears(['filters','Filters','FILTERS'],['direct_message,direct_mention
 //receive an interactive message, and reply with a message that will replace the original
 controller.on('interactive_message_callback', function(bot, message) {
     var data = JSON.parse(message.payload);
-    helper.saveAxosoftFilter(data);
-    bot.replyInteractive(message, {
-        text: `You selected \`${data.actions[0].name}\` filter!`
-    });
+
+    if(data.actions[0].name === "previousPage" || data.actions[0].name === "nextPage" ){
+      var currentPageNumber = helper.currentPage(data.original_message.text);
+      helper.retrieveDataFromDataBase(message.team.id, message.user,"teams")
+      .then(function(returnedData){
+          helper.paramsBuilderForInteractiveButtons(returnedData, currentPageNumber);
+      })
+      .catch(function(reason){
+        console.log(reason);
+      });
+    }else{
+        helper.saveAxosoftFilter(data);
+        bot.replyInteractive(message, {
+            text: `You selected \`${data.actions[0].name}\` filter!`
+        });
+    }
 });
 
 controller.storage.teams.all(function(err,teams) {

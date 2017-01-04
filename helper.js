@@ -155,6 +155,27 @@ attachmentMaker: function (Body, axoBaseUrl, axosoftToken, myKeyWordExists){
                                   });
                               }
                             }
+
+                           attachmentArrays.push({ 
+                              fallback: "You are unable to go to the next page", 
+                              callback_id: "nextPage", 
+                              color: "#3AA3E3", 
+                              attachment_type: "default", 
+                              actions:[ 
+                                { 
+                                  name: "previousPage", 
+                                  text: "Previous 10 Items", 
+                                  type: "button", 
+                                  value: "previousPage" 
+                                },{ 
+                                  name: "nextPage", 
+                                  text: "Next 10 Items", 
+                                  type: "button", 
+                                  value: "nextPage" 
+                                } 
+                              ] 
+                            });
+
                             resolve(attachmentArrays);
                         })
                         .catch(function(reason){
@@ -612,6 +633,11 @@ paramsBuilder: function(axosoftUrl, axosoftToken, slackToken, message){
                   });
 },
 
+paramsBuilderForInteractiveButtons: function(returnedData, currentPage){
+                                       var axoBaseUrl = returnedData.axosoftBaseURL;
+                                       var slackToken = returnedData.slackAccessToken;
+},
+
 getParamsFromQueryString: function(query){
                               var object = new Object();
                               var params = query.state.split("&");
@@ -882,6 +908,14 @@ validateRequstedPageNumber: function(message){
                               }else{
                                 return true;
                               }
-}
+},
+
+currentPage: function(txt){
+                    var one = txt.lastIndexOf("page") + 5;
+                    var two = txt.lastIndexOf("of") - 1;
+ 
+                    var result = txt.substr(one, (two - one));
+                    return result;
+} 
 
 };
