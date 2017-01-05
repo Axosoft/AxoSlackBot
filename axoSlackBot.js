@@ -329,13 +329,31 @@ controller.hears(['filters','Filters','FILTERS'],['direct_message,direct_mention
 
 //receive an interactive message, and reply with a message that will replace the original
 controller.on('interactive_message_callback', function(bot, message) {
+    //TODO do not forget to check token (message.token) to make sure request is coming from a friendly source
     var data = JSON.parse(message.payload);
 
     if(data.actions[0].name === "previousPage" || data.actions[0].name === "nextPage" ){
-      var currentPageNumber = helper.currentPage(data.original_message.text);
       helper.retrieveDataFromDataBase(message.team.id, message.user,"teams")
       .then(function(returnedData){
-          helper.paramsBuilderForInteractiveButtons(returnedData, currentPageNumber);
+          helper.paramsBuilderForInteractiveButtons(data)
+          .then(function(params){
+             var nodeAxo = new nodeAxosoft(returnedData.axosoftBaseURL, params.access_token);
+             var argsArray = [];
+             var axosoftAccessToken = params.access_token;
+             argsArray.push(params);
+
+             nodeAxo.promisify(nodeAxo.axosoftApi.Features.get, argsArray)
+             .then(function(response){
+               if(response.data.length == 0){
+                  helper.sendTextToSlack(returnedData.slackAccessToken, data.channel.id, "I could not find any items :worried:");
+               }else{
+                  helper.sendNewPageToSlack(returnedData.slackAccessToken, returnedData.axosoftBaseURL, axosoftAccessToken, data, response);
+               }
+             })
+             .catch(function(reason){
+                console.log(reason);
+             });
+          });
       })
       .catch(function(reason){
         console.log(reason);

@@ -69,12 +69,37 @@ sendDataToSlack: function(slackAccessToken, message, body, axoBaseUrl, axosoftTo
                                 channel: message.channel,
                                 mrkdwn: true,
                                 text: module.exports.formatText(body, message),
-                                attachments: JSON.stringify(attach) 
+                                attachments: JSON.stringify(attach),
+                                replace_original: true
                           };
                           module.exports.makeRequest("GET","https://slack.com/api/chat.postMessage", params, function(err, response, body){});
                     }).catch(function(reason){
                         console.log(reason);
                     });
+},
+
+sendNewPageToSlack: function(slackAccessToken, axosoftBaseUrl, axosoftAccessToken, data, items){
+                      var nextPageNumber , txt, currentPageNumber;
+                      currentPageNumber = parseInt(module.exports.currentPage(data.original_message.text));
+
+                      (data.actions[0].name === "nextPage") ? nextPageNumber = currentPageNumber + 1 : nextPageNumber = currentPageNumber - 1 ;
+                      txt = data.original_message.text.replace(currentPageNumber.toString(), nextPageNumber.toString())
+
+                      module.exports.attachmentMaker(items, axosoftBaseUrl, axosoftAccessToken, false)
+                      .then(function(attach){
+                          var params = {
+                                token: slackAccessToken,
+                                ts: data.message_ts,
+                                channel: data.channel.id,
+                                mrkdwn: true,
+                                text: txt,
+                                attachments: JSON.stringify(attach) 
+                          };
+                          module.exports.makeRequest("GET","https://slack.com/api/chat.update", params, function(err, response, body){});
+                      })
+                      .catch(function(reason){
+                          module.exports.sendTextToSlack(slackAccessToken, data.channel.id, "Something went wrong with getting the items of next/previous page"); 
+                      });
 },
 
 attachmentMaker: function (Body, axoBaseUrl, axosoftToken, myKeyWordExists){
@@ -156,24 +181,24 @@ attachmentMaker: function (Body, axoBaseUrl, axosoftToken, myKeyWordExists){
                               }
                             }
 
-                           attachmentArrays.push({ 
-                              fallback: "You are unable to go to the next page", 
-                              callback_id: "nextPage", 
-                              color: "#3AA3E3", 
-                              attachment_type: "default", 
-                              actions:[ 
-                                { 
-                                  name: "previousPage", 
-                                  text: "Previous 10 Items", 
-                                  type: "button", 
-                                  value: "previousPage" 
-                                },{ 
-                                  name: "nextPage", 
-                                  text: "Next 10 Items", 
-                                  type: "button", 
-                                  value: "nextPage" 
-                                } 
-                              ] 
+                           attachmentArrays.push({
+                              fallback: "You are unable to go to the next page",
+                              callback_id: "nextPage",
+                              color: "#3AA3E3",
+                              attachment_type: "default",
+                              actions:[
+                                {
+                                  name: "previousPage",
+                                  text: "Previous 10 Items",
+                                  type: "button",
+                                  value: "previousPage"
+                                },{
+                                  name: "nextPage",
+                                  text: "Next 10 Items",
+                                  type: "button",
+                                  value: "nextPage"
+                                }
+                              ]
                             });
 
                             resolve(attachmentArrays);
@@ -633,9 +658,21 @@ paramsBuilder: function(axosoftUrl, axosoftToken, slackToken, message){
                   });
 },
 
-paramsBuilderForInteractiveButtons: function(returnedData, currentPage){
-                                       var axoBaseUrl = returnedData.axosoftBaseURL;
-                                       var slackToken = returnedData.slackAccessToken;
+paramsBuilderForInteractiveButtons: function(data){
+                                        return new Promise(function(resolve, reject){
+                                            var currentPageNumber = parseInt(module.exports.currentPage(data.original_message.text));
+                                            module.exports.retrieveDataFromDataBase(data.team.id, data.user.id,"users")
+                                            .then(function(returnedData){
+                                                var params = {
+                                                    access_token: returnedData.axosoftAccessToken,
+                                                    columns: "name,id,item_type,priority,due_date,workflow_step,description,remaining_duration.duration_text,assigned_to,release,percent_complete,custom_fields.custom_1",
+                                                    page_size: 10,
+                                                    sort_fields: 'created_date_time DESC',
+                                                    page: (data.actions[0].name === "nextPage") ? currentPageNumber + 1 : currentPageNumber - 1 
+                                                  };
+                                                resolve(params);
+                                            })
+                                        });
 },
 
 getParamsFromQueryString: function(query){
@@ -913,9 +950,9 @@ validateRequstedPageNumber: function(message){
 currentPage: function(txt){
                     var one = txt.lastIndexOf("page") + 5;
                     var two = txt.lastIndexOf("of") - 1;
- 
+
                     var result = txt.substr(one, (two - one));
                     return result;
-} 
+}
 
 };
