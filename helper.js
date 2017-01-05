@@ -79,13 +79,15 @@ sendDataToSlack: function(slackAccessToken, message, body, axoBaseUrl, axosoftTo
 },
 
 sendNewPageToSlack: function(slackAccessToken, axosoftBaseUrl, axosoftAccessToken, data, items){
-                      var nextPageNumber , txt, currentPageNumber;
-                      currentPageNumber = parseInt(module.exports.currentPage(data.original_message.text));
+                      var dataText = data.original_message.text;
+                      var nextPageNumber, txt, currentPageNumber, myKeyWordExists;
+                      currentPageNumber = parseInt(module.exports.currentPage(dataText));
 
                       (data.actions[0].name === "nextPage") ? nextPageNumber = currentPageNumber + 1 : nextPageNumber = currentPageNumber - 1 ;
-                      txt = data.original_message.text.replace(currentPageNumber.toString(), nextPageNumber.toString())
+                      txt = dataText.replace(currentPageNumber.toString(), nextPageNumber.toString());
+                      (dataText.includes("your"))? myKeyWordExists = true : myKeyWordExists = false;
 
-                      module.exports.attachmentMaker(items, axosoftBaseUrl, axosoftAccessToken, false)
+                      module.exports.attachmentMaker(items, axosoftBaseUrl, axosoftAccessToken, myKeyWordExists)
                       .then(function(attach){
                           var params = {
                                 token: slackAccessToken,
