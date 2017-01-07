@@ -72,6 +72,7 @@ sendDataToSlack: function(slackAccessToken, message, body, axoBaseUrl, axosoftTo
                                 attachments: JSON.stringify(attach),
                                 replace_original: true
                           };
+
                           module.exports.makeRequest("GET","https://slack.com/api/chat.postMessage", params, function(err, response, body){});
                     }).catch(function(reason){
                         console.log(reason);
@@ -87,7 +88,7 @@ sendNewPageToSlack: function(slackAccessToken, axosoftBaseUrl, axosoftAccessToke
                       txt = dataText.replace(currentPageNumber.toString(), nextPageNumber.toString());
                       (dataText.includes("your"))? myKeyWordExists = true : myKeyWordExists = false;
 
-                      module.exports.attachmentMaker(items, axosoftBaseUrl, axosoftAccessToken, myKeyWordExists)
+                      module.exports.attachmentMaker(items, axosoftBaseUrl, axosoftAccessToken, myKeyWordExists, data)
                       .then(function(attach){
                           var params = {
                                 token: slackAccessToken,
@@ -104,7 +105,7 @@ sendNewPageToSlack: function(slackAccessToken, axosoftBaseUrl, axosoftAccessToke
                       });
 },
 
-attachmentMaker: function (Body, axoBaseUrl, axosoftToken, myKeyWordExists){
+attachmentMaker: function (Body, axoBaseUrl, axosoftToken, myKeyWordExists, TEST){
                     return new Promise(function(resolve, reject){
                           var attachmentArrays = [];
                           var parentIds = [];
@@ -182,33 +183,96 @@ attachmentMaker: function (Body, axoBaseUrl, axosoftToken, myKeyWordExists){
                                   });
                               }
                             }
-
-                           attachmentArrays.push({
-                              fallback: "You are unable to go to the next page",
-                              callback_id: "nextPage",
-                              color: "#3AA3E3",
-                              attachment_type: "default",
-                              actions:[
-                                {
-                                  name: "previousPage",
-                                  text: "Previous 10 Items",
-                                  type: "button",
-                                  value: "previousPage"
-                                },{
-                                  name: "nextPage",
-                                  text: "Next 10 Items",
-                                  type: "button",
-                                  value: "nextPage"
-                                }
-                              ]
-                            });
-
-                            resolve(attachmentArrays);
+                            var attachArrays = module.exports.attachInteractiveButtons(attachmentArrays, Body, TEST);
+                            resolve(attachArrays);
                         })
                         .catch(function(reason){
                           console.log(reason);
                         })
                     });
+},
+
+//TODO refactor this function!
+attachInteractiveButtons:function(attachArray, Body, data){
+                            var txt, totalPage = Math.ceil((Body.metadata.total_count/Body.metadata.page_size));
+                            (data == undefined) ? txt = undefined : txt = data.original_message.text;
+                             var myObject = {
+                                  fallback: "You are unable to go to the next page",
+                                  callback_id: "nextPage",
+                                  color: "#FF8C00",
+                                  attachment_type: "default",
+                             };
+
+                            if(Body.data.length >= 10 || (module.exports.currentPage(txt) == totalPage - 1) || Body.metadata.page == totalPage){
+                                  if(module.exports.currentPage(txt) == undefined && Body.metadata.page == 0){
+                                        myObject.actions = [{
+                                            name: "nextPage",
+                                            text: "Next 10 Items",
+                                            type: "button",
+                                            value: "nextPage"
+                                        }];
+                                        attachArray.push(myObject);
+                                  }else if(module.exports.currentPage(txt) == undefined && Body.metadata.page > 0 && Body.metadata.page != 1 && Body.metadata.page != totalPage){
+                                        myObject.actions = [{
+                                            name: "previousPage",
+                                            text: "Previous 10 Items",
+                                            type: "button",
+                                            value: "previousPage"
+                                            },{
+                                            name: "nextPage",
+                                            text: "Next 10 Items",
+                                            type: "button",
+                                            value: "nextPage"
+                                        }];
+                                        attachArray.push(myObject);
+                                  }else if(Body.metadata.page == 1){
+                                      myObject.actions = [{
+                                            name: "nextPage",
+                                            text: "Next 10 Items",
+                                            type: "button",
+                                            value: "nextPage"
+                                      }];
+                                      attachArray.push(myObject);
+                                  }else if(module.exports.currentPage(txt) == "2" && data.actions[0].name == "previousPage"){
+                                        myObject.actions = [{
+                                            name: "nextPage",
+                                            text: "Next 10 Items",
+                                            type: "button",
+                                            value: "nextPage"
+                                        }];
+                                        attachArray.push(myObject);
+                                  }else if(module.exports.currentPage(txt) == totalPage - 1){
+                                      myObject.actions = [{
+                                            name: "previousPage",
+                                            text: "Previous 10 Items",
+                                            type: "button",
+                                            value: "previousPage"
+                                      }];
+                                      attachArray.push(myObject);
+                                  }else if(Body.metadata.page == totalPage){
+                                      myObject.actions = [{
+                                            name: "previousPage",
+                                            text: "Previous 10 Items",
+                                            type: "button",
+                                            value: "previousPage"
+                                      }];
+                                      attachArray.push(myObject);
+                                  }else{
+                                      myObject.actions = [{
+                                            name: "previousPage",
+                                            text: "Previous 10 Items",
+                                            type: "button",
+                                            value: "previousPage"
+                                            },{
+                                            name: "nextPage",
+                                            text: "Next 10 Items",
+                                            type: "button",
+                                            value: "nextPage"
+                                      }];
+                                      attachArray.push(myObject);
+                                  }
+                            }
+                            return attachArray;
 },
 
 attachmentMakerForHelpOptions: function(){
@@ -950,11 +1014,13 @@ validateRequstedPageNumber: function(message){
 },
 
 currentPage: function(txt){
-                    var one = txt.lastIndexOf("page") + 5;
-                    var two = txt.lastIndexOf("of") - 1;
+                    if(txt != undefined){
+                      var one = txt.lastIndexOf("page") + 5;
+                      var two = txt.lastIndexOf("of") - 1;
 
-                    var result = txt.substr(one, (two - one));
-                    return result;
+                      var result = txt.substr(one, (two - one));
+                      return result;
+                    }
 }
 
 };
