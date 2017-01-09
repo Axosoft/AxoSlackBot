@@ -899,11 +899,11 @@ actionArrayMaker: function(filters){
 },
 
 attachmentsArrayMakerForInteractiveButtons: function(actions){
-                                                  var mainArray = [];
-                                                  var attachments = [];
-                                                  //TODO 5 should not be hardcoded
-                                                  var index = 0;
-                                                  for(x=0; x < 5; x++){
+                                                  var mainArray = [],attachments = [];
+                                                  var count = 0, index = 0;
+                                                  ((actions.length/5) % 1 === 0) ? count = actions.length/5 : count = Math.floor(actions.length/5) + 1;
+
+                                                  for(x=0; x < count; x++){
                                                       attachments = [{
                                                           "fallback": "You are unable to choose a filter",
                                                           "callback_id": "select_filter",
@@ -912,7 +912,8 @@ attachmentsArrayMakerForInteractiveButtons: function(actions){
                                                           "actions":[]
                                                       }];
 
-                                                      for(z=0; z < 5; z++){ //5 is max count of buttons in a row (slack restriction)
+                                                      //5 is max count of buttons in a row (slack restriction)
+                                                      for(z=0; z < 5; z++){
                                                         if(index == actions.length){
                                                           attachments[0].actions.push({
                                                                   "name": "noFilter",
