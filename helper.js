@@ -27,33 +27,51 @@ sendTextToSlack: function(slackToken, channelId, txt){
                     });
 },
 
-formatText: function(body, message){
-                var pageTotal = Math.ceil((body.metadata.total_count/body.metadata.page_size));
-                var page = body.metadata.page === 0 ? 1 : body.metadata.page;
-                var txt = "Here are ";
-                if(message.text.includes("my ")){
-                   txt = txt + "your ";
-                   addWhiteSpace = false;
-                }
-                if (message.match[2].length > 0) {
-                  txt += message.match[2];
-                }
+filterTextMaker: function(message){
+             return new Promise(function(resolve, reject){
+                  var filterText = "";
+                  module.exports.retrieveDataFromDataBase(message.team, message.user,"users")
+                  .then(function(returnedData){
+                          if(returnedData.filter.name != "noFilter"){
+                             filterText = ` filtered by \`${returnedData.filter.name}\``
+                          }
+                          resolve(filterText);
+                  });
+             }); 
+},
 
-                if(message.text.match('(.*)(page)(\\s)(\\d+)(.*)') != null){
-                  if(message.text.includes("closed")){
-                    return `${txt}items [in the last 30 days] (page ${page} of ${pageTotal})`
-                  }else{
-                    return `${txt}items (page ${page} of ${pageTotal})`;
-                  }
-                }else{
-                  if(message.text.includes("closed")){
-                    return (pageTotal>1) ? txt = txt + `items [in the last 30 days], (page 1 of ${pageTotal})` : txt = txt + "items [in the last 30 days]";
-                  }else if(pageTotal>1){
-                    return `${txt}items (page 1 of ${pageTotal})`;
-                  }else{
-                    return `${txt}items`;
-                  }
-                }
+formatText: function(body, message){
+                return new Promise(function(resolve, reject){
+                      var pageTotal = Math.ceil((body.metadata.total_count/body.metadata.page_size));
+                      var page = body.metadata.page === 0 ? 1 : body.metadata.page;
+                      var txt = "Here are ";
+                      if(message.text.includes("my ")){
+                        txt = txt + "your ";
+                        addWhiteSpace = false;
+                      }
+                      if (message.match[2].length > 0) {
+                        txt += message.match[2];
+                      }
+
+                      module.exports.filterTextMaker(message)
+                      .then(function(filterName){
+                            if(message.text.match('(.*)(page)(\\s)(\\d+)(.*)') != null){
+                              if(message.text.includes("closed")){
+                                resolve(`${txt}items ${filterName} [in the last 30 days] (page ${page} of ${pageTotal})`);
+                              }else{
+                                resolve(`${txt}items ${filterName} (page ${page} of ${pageTotal})`);
+                              }
+                            }else{
+                              if(message.text.includes("closed")){
+                                resolve((pageTotal>1) ? txt = txt + `items ${filterName} [in the last 30 days], (page 1 of ${pageTotal})` : txt = txt + `items ${filterName} [in the last 30 days]`);
+                              }else if(pageTotal>1){
+                                resolve(`${txt}items ${filterName} (page 1 of ${pageTotal})`);
+                              }else{
+                                resolve(`${txt}items ${filterName}`);
+                              }
+                            }
+                      });
+                });
 },
 
 sendDataToSlack: function(slackAccessToken, message, body, axoBaseUrl, axosoftToken){
@@ -64,16 +82,19 @@ sendDataToSlack: function(slackAccessToken, message, body, axoBaseUrl, axosoftTo
 
                     module.exports.attachmentMaker(body, axoBaseUrl, axosoftToken, myKeyWordTypedByUser)
                     .then(function(attach){
-                          var params = {
-                                token: slackAccessToken,
-                                channel: message.channel,
-                                mrkdwn: true,
-                                text: module.exports.formatText(body, message),
-                                attachments: JSON.stringify(attach),
-                                replace_original: true
-                          };
+                        module.exports.formatText(body, message)
+                        .then(function(txt){
+                            var params = {
+                                  token: slackAccessToken,
+                                  channel: message.channel,
+                                  mrkdwn: true,
+                                  text: txt,
+                                  attachments: JSON.stringify(attach),
+                                  replace_original: true
+                            };
 
-                          module.exports.makeRequest("GET","https://slack.com/api/chat.postMessage", params, function(err, response, body){});
+                            module.exports.makeRequest("GET","https://slack.com/api/chat.postMessage", params, function(err, response, body){});
+                        });
                     }).catch(function(reason){
                         console.log(reason);
                     });
