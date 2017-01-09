@@ -470,7 +470,10 @@ retrieveDataFromDataBase: function(slackTeamId, slackUserId, documentName){
                                                       console.log("There is no userIdAxosoft within the found document!");
                                                       resolve({axosoftAccessToken: "-1"});
                                                     }else{
-                                                        resolve({axosoftAccessToken: results[0].axosoftAccessToken});
+                                                        resolve({
+                                                          axosoftAccessToken: results[0].axosoftAccessToken,
+                                                          filter: results[0].axsoftFilter
+                                                        });
                                                     }
                                               }
                                         });
@@ -627,6 +630,21 @@ textBuilder: function(message){
                 });
 },
 
+attachSelectedFilterToParams: function(message, params){
+                                  return new Promise(function(resolve, reject){
+                                      module.exports.retrieveDataFromDataBase(message.team, message.user,"users")
+                                      .then(function(returnedData){
+                                          if(returnedData.filter.name != "noFilter" && returnedData.filter != undefined){
+                                            params.filter_id = returnedData.filter.value
+                                          }
+                                          resolve(params);
+                                      }).catch(function(reason){
+                                          console.log(reason);
+                                          resolve(params);
+                                      })
+                                  });
+},
+
 paramsBuilder: function(axosoftUrl, axosoftToken, slackToken, message){
                   return new Promise(function(resolve, reject){
                       var params = {
@@ -636,53 +654,57 @@ paramsBuilder: function(axosoftUrl, axosoftToken, slackToken, message){
                         //default sort created_date_time desc
                         sort_fields: 'created_date_time DESC'
                       };
-                      var keyWord = message.match[2].toLowerCase();
 
-                      //paging
-                      var page = 1;
-                      var pageMatches = message.text.match(/(.*)(page\s)(\d+)/i);
-                      if (pageMatches){
-                        page = pageMatches[3];
-                          params.page = page;
-                      }
+                      module.exports.attachSelectedFilterToParams(message, params)
+                      .then(function(params){
+                            var keyWord = message.match[2].toLowerCase();
 
-                      if(keyWord == 'open '){
-                        params.filters = 'completion_date="1899-01-01"';
-                        params.sort_fields = 'last_updated_date_time DESC';
-                      }else if(keyWord == 'closed '){
-                        params.filters = 'completion_date=in[last30_days]';
-                        params.sort_fields = 'completion_date DESC,last_updated_date_time DESC';
-                      }else if(keyWord == 'updated '){
-                        params.sort_fields = 'last_updated_date_time DESC';
-                      }else if(keyWord== 'ranked '){
-                        params.sort_fields = 'rank';
-                      }else if(keyWord == 'upcoming '){
-                        var today = new Date();
-                        Date.prototype.addDays = function(days){
-                            var date = new Date(this.valueOf());
-                            date.setDate(date.getDate() + days);
-                            return date;
-                        }
-                        params.due_date = `[${today.addDays(-90).toISOString()}=${today.addDays(14).toISOString()}]`;
-                        params.filters = 'completion_date="1899-01-01"';
-                        params.sort_fields = 'due_date,last_updated_date_time DESC'
-                      }else if(keyWord != ""){
-                        module.exports.sendTextToSlack(slackToken, message.channel,"I don't understand what you want me to do. You can ask me 'help' for a list of supported commands");
-                        reject("vague Request");
-                      }
+                            //paging
+                            var page = 1;
+                            var pageMatches = message.text.match(/(.*)(page\s)(\d+)/i);
+                            if (pageMatches){
+                                page = pageMatches[3];
+                                params.page = page;
+                            }
 
-                      if(message.match[1] == 'get my'){
-                          module.exports.getUserIdAxosoft(axosoftUrl, axosoftToken, slackToken, message)
-                            .then(function(userIdAxo){
-                                params.filters = params.filters + `,assigned_to.id=${userIdAxo}`;
-                                return resolve(params);
-                            }).catch(function(reason){
-                                return reject(reason);
-                            })
-                      }
-                      else{
-                        return resolve(params);
-                      }
+                            if(keyWord == 'open '){
+                              params.filters = 'completion_date="1899-01-01"';
+                              params.sort_fields = 'last_updated_date_time DESC';
+                            }else if(keyWord == 'closed '){
+                              params.filters = 'completion_date=in[last30_days]';
+                              params.sort_fields = 'completion_date DESC,last_updated_date_time DESC';
+                            }else if(keyWord == 'updated '){
+                              params.sort_fields = 'last_updated_date_time DESC';
+                            }else if(keyWord == 'ranked '){
+                              params.sort_fields = 'rank';
+                            }else if(keyWord == 'upcoming '){
+                              var today = new Date();
+                              Date.prototype.addDays = function(days){
+                                  var date = new Date(this.valueOf());
+                                  date.setDate(date.getDate() + days);
+                                  return date;
+                              }
+                              params.due_date = `[${today.addDays(-90).toISOString()}=${today.addDays(14).toISOString()}]`;
+                              params.filters = 'completion_date="1899-01-01"';
+                              params.sort_fields = 'due_date,last_updated_date_time DESC'
+                            }else if(keyWord != ""){
+                              module.exports.sendTextToSlack(slackToken, message.channel,"I don't understand what you want me to do. You can ask me 'help' for a list of supported commands");
+                              reject("vague Request");
+                            }
+
+                            if(message.match[1] == 'get my'){
+                                module.exports.getUserIdAxosoft(axosoftUrl, axosoftToken, slackToken, message)
+                                  .then(function(userIdAxo){
+                                      params.filters = params.filters + `,assigned_to.id=${userIdAxo}`;
+                                      return resolve(params);
+                                  }).catch(function(reason){
+                                      return reject(reason);
+                                  })
+                            }
+                            else{
+                              return resolve(params);
+                            }
+                      });
                   });
 },
 
@@ -940,12 +962,12 @@ saveAxosoftFilter: function(data){
                     var userId = data.user.id;
                     var teamId = data.team.id;
                     //TODO make sure document exists before you store the axosoftFilter in da database
-                    
+
                     MongoClient.connect(config.mongoUri,function(err, database){
                       if(err){
                         return console.log(err);
                       }else{
-                        var test = database.collection('users').findAndModify(
+                        database.collection('users').findAndModify(
                            {id: userId, team_id: teamId},
                            [],
                            {$set: {axsoftFilter: data.actions[0]}},
