@@ -124,7 +124,7 @@ controller.on('rtm_close', function(bot, err) {
         });
 
 
-controller.hears('(get my|get) (.*)(items)(.*)',['direct_message,direct_mention,mention,ambient'],function(bot, message){
+controller.hears('(get my|get) (.*)(items)(.*)',['direct_message,direct_mention,mention'],function(bot, message){
     var channelId = message.channel;
     var validNumber = helper.validateRequstedPageNumber(message.match);
 
