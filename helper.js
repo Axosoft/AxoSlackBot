@@ -739,9 +739,18 @@ paramsBuilderForInteractiveButtons: function(data){
                                                     columns: "name,id,item_type,priority,due_date,workflow_step,description,remaining_duration.duration_text,assigned_to,release,percent_complete,custom_fields.custom_1",
                                                     page_size: 10,
                                                     sort_fields: 'created_date_time DESC',
-                                                    page: (data.actions[0].name === "nextPage") ? currentPageNumber + 1 : currentPageNumber - 1 
-                                                  };
-                                                resolve(params);
+                                                    page: (data.actions[0].name === "nextPage") ? currentPageNumber + 1 : currentPageNumber - 1
+                                                };
+                                                
+                                                var message = {
+                                                    team: data.team.id,
+                                                    user: data.user.id
+                                                };
+
+                                                module.exports.attachSelectedFilterToParams(message, params)
+                                                .then(function(params){
+                                                    resolve(params);
+                                                });
                                             })
                                         });
 },
