@@ -117,16 +117,16 @@ sendNewPageToSlack: function(slackAccessToken, axosoftBaseUrl, axosoftAccessToke
                                 channel: data.channel.id,
                                 mrkdwn: true,
                                 text: txt,
-                                attachments: JSON.stringify(attach) 
+                                attachments: JSON.stringify(attach)
                           };
                           module.exports.makeRequest("GET","https://slack.com/api/chat.update", params, function(err, response, body){});
                       })
                       .catch(function(reason){
-                          module.exports.sendTextToSlack(slackAccessToken, data.channel.id, "Something went wrong with getting the items of next/previous page"); 
+                         module.exports.sendTextToSlack(slackAccessToken, data.channel.id, "Something went wrong with getting the items of next/previous page :astonished:");
                       });
 },
 
-attachmentMaker: function (Body, axoBaseUrl, axosoftToken, myKeyWordExists, TEST){
+attachmentMaker: function (Body, axoBaseUrl, axosoftToken, myKeyWordExists, msg){
                     return new Promise(function(resolve, reject){
                           var attachmentArrays = [];
                           var parentIds = [];
@@ -204,11 +204,11 @@ attachmentMaker: function (Body, axoBaseUrl, axosoftToken, myKeyWordExists, TEST
                                   });
                               }
                             }
-                            var attachArrays = module.exports.attachInteractiveButtons(attachmentArrays, Body, TEST);
+                            var attachArrays = module.exports.attachInteractiveButtons(attachmentArrays, Body, msg);
                             resolve(attachArrays);
                         })
                         .catch(function(reason){
-                          console.log(reason);
+                          reject(reason);
                         })
                     });
 },
@@ -216,15 +216,17 @@ attachmentMaker: function (Body, axoBaseUrl, axosoftToken, myKeyWordExists, TEST
 attachInteractiveButtons:function(attachArray, Body, data){
                             var txt, totalPage = Math.ceil((Body.metadata.total_count/Body.metadata.page_size));
                             (data == undefined) ? txt = undefined : txt = data.original_message.text;
-                             var myObject = {
-                                  fallback: "You are unable to go to the next page",
-                                  callback_id: "nextPage",
-                                  color: "#FF8C00",
-                                  attachment_type: "default",
-                             };
 
-                            if(Body.data.length >= 10 || (module.exports.currentPage(txt) == totalPage - 1) || Body.metadata.page == totalPage){
-                                  if((module.exports.currentPage(txt) == undefined && Body.metadata.page == 0) || (module.exports.currentPage(txt) == "2" && data.actions[0].name == "previousPage" || Body.metadata.page == 1)){
+                            var currentPage = module.exports.currentPage(txt);
+                            var myObject = {
+                                fallback: "You are unable to go to the next page",
+                                callback_id: "nextPage",
+                                color: "#FF8C00",
+                                attachment_type: "default",
+                            };
+
+                            if(Body.data.length >= 10 || (currentPage == totalPage - 1) || Body.metadata.page == totalPage){
+                                  if((currentPage == undefined && Body.metadata.page == 0) || (currentPage == "2" && data.actions[0].name == "previousPage" || Body.metadata.page == 1)){
                                         myObject.actions = [{
                                             name: "nextPage",
                                             text: "Next 10 Items",
@@ -232,7 +234,7 @@ attachInteractiveButtons:function(attachArray, Body, data){
                                             value: "nextPage"
                                         }];
                                         attachArray.push(myObject);
-                                  }else if(module.exports.currentPage(txt) == totalPage - 1 || Body.metadata.page == totalPage){
+                                  }else if(Body.metadata.page == totalPage){
                                       myObject.actions = [{
                                             name: "previousPage",
                                             text: "Previous 10 Items",
@@ -296,14 +298,17 @@ attachmentMakerForHelpOptions: function(){
 },
 
 getParentName: function(parentIds, axoBaseUrl, axosoftToken){
-                  var parentDictionary = {}; 
+                  var parentDictionary = {};
                   return new Promise(function(resolve, reject){
                       if(parentIds.length > 0){
                            var args = [{
                               access_token: axosoftToken,
                               filters: `id=in[${parentIds}]`,
                               columns: "name",
+                              include_inactive_projects: true,
+                              include_inactive_releases: true
                             }];
+
                             var nodeAxo = new nodeAxosoft(axoBaseUrl, args[0].access_token);
                             nodeAxo.promisify(nodeAxo.axosoftApi.Features.get, args)
                             .then(function(response){
@@ -314,6 +319,7 @@ getParentName: function(parentIds, axoBaseUrl, axosoftToken){
                                   resolve(parentDictionary);
                               }else{
                                 console.log("helper.getParentName data.length == 0");
+                                reject("noParentData");
                               }
                             })
                             .catch(function(reason){
@@ -322,32 +328,32 @@ getParentName: function(parentIds, axoBaseUrl, axosoftToken){
                             });
                       }else{
                         resolve(parentDictionary);
-                      } 
+                      }
                   });
 },
 
 timeFormat: function(input){
                 var parts = input.match(/(\d+)/g);
-                date = new Date(parts[0], parts[1]-1, parts[2]); 
+                date = new Date(parts[0], parts[1]-1, parts[2]);
 
                 var months = ["Jan", "Feb", "Mar", "Apr", "May", "June", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
                 var strDate = "";
                 var day = date.getDate();
                 var month = months[date.getMonth()];
-                
+
                 var today = new Date();
                 today.setHours(0, 0, 0, 0);
-                
+
                 var yesterday = new Date();
                 yesterday.setHours(0, 0, 0, 0);
                 yesterday.setDate(yesterday.getDate() - 1);
-                
+
                 var tomorrow = new Date();
                 tomorrow.setHours(0, 0, 0, 0);
                 tomorrow.setDate(tomorrow.getDate() + 1);
-                
+
                 console.log(date.getTime()==today.getTime());
-                
+
                 if(today.getTime() == date.getTime()){
                     strDate = "Today";
                 }else if(yesterday.getTime() == date.getTime()){
@@ -381,11 +387,11 @@ saveAxosoftAccessToken: function(userId, teamId, accessToken){
                               database.collection('users').findAndModify(
                               {id: userId, team_id: teamId}, 
                               [],
-                              {$set: {axosoftAccessToken: accessToken}}, 
+                              {$set: {axosoftAccessToken: accessToken}},
                               {},
                               function(err, object) {
                                   if (err){
-                                      console.warn(err.message); 
+                                      console.warn(err.message);
                                   }else{
                                       console.dir(object);
                                   }
@@ -403,7 +409,7 @@ saveAxosoftUrl: function(data, baseUrl) {
                           {},
                           function(err, object) {
                               if (err){
-                                  console.warn(err.message); 
+                                  console.warn(err.message);
                               }else{
                                   console.dir(object);
                               }
@@ -741,7 +747,7 @@ paramsBuilderForInteractiveButtons: function(data){
                                                     sort_fields: 'created_date_time DESC',
                                                     page: (data.actions[0].name === "nextPage") ? currentPageNumber + 1 : currentPageNumber - 1
                                                 };
-                                                
+
                                                 var message = {
                                                     team: data.team.id,
                                                     user: data.user.id
@@ -751,6 +757,9 @@ paramsBuilderForInteractiveButtons: function(data){
                                                 .then(function(params){
                                                     resolve(params);
                                                 });
+                                            })
+                                            .catch(function(reason){
+                                                console.log(reason);
                                             })
                                         });
 },
