@@ -214,36 +214,36 @@ attachmentMaker: function (Body, axoBaseUrl, axosoftToken, myKeyWordExists, msg)
 },
 
 attachInteractiveButtons:function(attachArray, Body, data){
-                            var txt, totalPage = Math.ceil((Body.metadata.total_count/Body.metadata.page_size));
+                            var txt, pageTotal = Math.ceil((Body.metadata.total_count/Body.metadata.page_size));
                             (data == undefined) ? txt = undefined : txt = data.original_message.text;
 
                             var currentPage = module.exports.currentPage(txt);
-                            var myObject = {
+                            var obj = {
                                 fallback: "You are unable to go to the next page",
                                 callback_id: "nextPage",
                                 color: "#FF8C00",
                                 attachment_type: "default",
                             };
 
-                            if(Body.data.length >= 10 || (currentPage == totalPage - 1) || Body.metadata.page == totalPage){
+                            if(Body.data.length >= 10 || (currentPage == pageTotal - 1) || Body.metadata.page == pageTotal){
                                   if((currentPage == undefined && Body.metadata.page == 0) || (currentPage == "2" && data.actions[0].name == "previousPage" || Body.metadata.page == 1)){
-                                        myObject.actions = [{
+                                        obj.actions = [{
                                             name: "nextPage",
                                             text: "Next 10 Items",
                                             type: "button",
                                             value: "nextPage"
                                         }];
-                                        attachArray.push(myObject);
-                                  }else if(Body.metadata.page == totalPage){
-                                      myObject.actions = [{
+                                        attachArray.push(obj);
+                                  }else if(Body.metadata.page == pageTotal){
+                                      obj.actions = [{
                                             name: "previousPage",
                                             text: "Previous 10 Items",
                                             type: "button",
                                             value: "previousPage"
                                       }];
-                                      attachArray.push(myObject);
+                                      attachArray.push(obj);
                                   }else{
-                                      myObject.actions = [{
+                                      obj.actions = [{
                                             name: "previousPage",
                                             text: "Previous 10 Items",
                                             type: "button",
@@ -254,7 +254,7 @@ attachInteractiveButtons:function(attachArray, Body, data){
                                             type: "button",
                                             value: "nextPage"
                                       }];
-                                      attachArray.push(myObject);
+                                      attachArray.push(obj);
                                   }
                             }
                             return attachArray;
@@ -368,16 +368,16 @@ timeFormat: function(input){
 
 getUserIdAxosoft: function(axoBaseUrl, axoAccessToken){
                       return new Promise(function(resolve, reject){
-                      var args = [{
-                        access_token: axoAccessToken
-                      }];
-                      var nodeAxo = new nodeAxosoft(axoBaseUrl, args[0].access_token);
-                      nodeAxo.promisify(nodeAxo.axosoftApi.Me.get)
-                      .then(function(response){
-                        resolve(response.data.id);
-                      }).catch(function(reason){
-                        reject(reason);
-                      });
+                          var args = [{
+                            access_token: axoAccessToken
+                          }];
+                          var nodeAxo = new nodeAxosoft(axoBaseUrl, args[0].access_token);
+                          nodeAxo.promisify(nodeAxo.axosoftApi.Me.get)
+                          .then(function(response){
+                            resolve(response.data.id);
+                          }).catch(function(reason){
+                            reject(reason);
+                          });
                       });
 },
 
@@ -479,7 +479,7 @@ getAxosoftAccessToken: function(bot, message, database, axosoftBaseURL) {
 
 retrieveDataFromDataBase: function(slackTeamId, slackUserId, documentName){
                               return new Promise(function(resolve, reject){
-                                  var axosoftAccessToken, axosoftBaseURL, slackAccessToken, axosoftUserId;
+                                  var axosoftAccessToken, axosoftBaseURL, slackAccessToken;
 
                                   MongoClient.connect(config.mongoUri, function(err, database){
                                     if(err) {
@@ -572,31 +572,32 @@ setAxosoftAccessToken:function(bot, message, axosoftUrl){
 },
 
 setAxosoftBaseUrl: function(bot, message){
-  return new Promise(function(resolve, reject) {
-bot.startConversation(message, function(err, convo) {
-        convo.ask("Can you tell me the URL of your Axosoft account? i.e. https://example.axosoft.com", function(response, convo) {
-        var baseUrl = module.exports.formatAxosoftBaseUrl(response.text.replace(/[<>]/g, ''));
-        module.exports.makeRequest('GET', baseUrl + '/api/version', {}, function(error, response, body){
-          if(!error && response.statusCode == 200){
-            var Body = JSON.parse(body);
-            if(Body.data.hasOwnProperty("revision") && Body.data.revision >= 11218){
-              var axosoftLoginUrl = module.exports.axosoftLoginUrlBuilder(baseUrl, message);
-                module.exports.saveAxosoftUrl(message, baseUrl);
-                resolve(baseUrl);
-                convo.say("Got it :ok_hand:");
-                convo.next();
-            } else {
-              convo.say("I can only talk to Axosoft v17 or later.  Please upgrade your Axosoft version.");
-              convo.next();
-            }
-          }else{
-            convo.say("This doesn't seem to be an Axosoft URL");
-            convo.next();
-          }
-        });
-        });
-    });
-  });
+                      return new Promise(function(resolve, reject) {
+                              bot.startConversation(message, function(err, convo){
+                                      convo.ask("Can you tell me the URL of your Axosoft account? i.e. https://example.axosoft.com", function(response, convo){
+                                          var baseUrl = module.exports.formatAxosoftBaseUrl(response.text.replace(/[<>]/g, ''));
+
+                                          module.exports.makeRequest('GET', baseUrl + '/api/version', {}, function(error, response, body){
+                                              if(!error && response.statusCode == 200){
+                                                var Body = JSON.parse(body);
+                                                if(Body.data.hasOwnProperty("revision") && Body.data.revision >= 11218){
+                                                  var axosoftLoginUrl = module.exports.axosoftLoginUrlBuilder(baseUrl, message);
+                                                    module.exports.saveAxosoftUrl(message, baseUrl);
+                                                    resolve(baseUrl);
+                                                    convo.say("Got it :ok_hand:");
+                                                    convo.next();
+                                                } else {
+                                                  convo.say("I can only talk to Axosoft v17 or later.  Please upgrade your Axosoft version.");
+                                                  convo.next();
+                                                }
+                                              }else{
+                                                convo.say("This doesn't seem to be an Axosoft URL");
+                                                convo.next();
+                                              }
+                                          });
+                                      });
+                             });
+                      });
 },
 
 authorizeUserwithoutCollection:function(bot, message, returnedData){
@@ -640,9 +641,9 @@ authorizeUserwithoutCollection:function(bot, message, returnedData){
                                           });
                                       });
                                 })
-                                  .catch(function(reason){
-                                    console.log(reason);
-                                  });
+                                .catch(function(reason){
+                                  console.log(reason);
+                                });
 },
 
 textBuilder: function(message){
@@ -685,6 +686,10 @@ paramsBuilder: function(axosoftUrl, axosoftToken, slackToken, message){
                       module.exports.attachSelectedFilterToParams(message, params)
                       .then(function(params){
                             var keyWord = message.match[2].toLowerCase();
+                            if(keyWord != "open " && keyWord != "closed " && keyWord != "updated " && keyWord != "ranked " && keyWord != "upcoming " ){
+                              module.exports.sendTextToSlack(slackToken, message.channel,"I don't understand what you want me to do. You can ask me 'help' for a list of supported commands");
+                              reject("vague Request");
+                            }
 
                             //paging
                             var page = 1;
@@ -694,48 +699,49 @@ paramsBuilder: function(axosoftUrl, axosoftToken, slackToken, message){
                                 params.page = page;
                             }
 
-                            if(keyWord == 'open '){
-                              params.filters = 'completion_date="1899-01-01"';
-                              params.sort_fields = 'last_updated_date_time DESC';
-                            }else if(keyWord == 'closed '){
-                              params.filters = 'completion_date=in[last30_days]';
-                              params.sort_fields = 'completion_date DESC,last_updated_date_time DESC';
-                            }else if(keyWord == 'updated '){
-                              params.sort_fields = 'last_updated_date_time DESC';
-                            }else if(keyWord == 'ranked '){
-                              params.sort_fields = 'rank';
-                            }else if(keyWord == 'upcoming '){
-                              var today = new Date();
-                              Date.prototype.addDays = function(days){
-                                  var date = new Date(this.valueOf());
-                                  date.setDate(date.getDate() + days);
-                                  return date;
-                              }
-                              params.due_date = `[${today.addDays(-90).toISOString()}=${today.addDays(14).toISOString()}]`;
-                              params.filters = 'completion_date="1899-01-01"';
-                              params.sort_fields = 'due_date,last_updated_date_time DESC'
-                            }else if(keyWord != ""){
-                              module.exports.sendTextToSlack(slackToken, message.channel,"I don't understand what you want me to do. You can ask me 'help' for a list of supported commands");
-                              reject("vague Request");
-                            }
-
+                            var editedParams = module.exports.attachFiltersToParamsBaseOnRequestedKeyWord(params, keyWord);
                             if(message.match[1] == 'get my'){
-                                module.exports.getUserIdAxosoft(axosoftUrl, axosoftToken, slackToken, message)
-                                  .then(function(userIdAxo){
-                                      params.filters = params.filters + `,assigned_to.id=${userIdAxo}`;
-                                      return resolve(params);
-                                  }).catch(function(reason){
-                                      return reject(reason);
-                                  })
+                                module.exports.getUserIdAxosoft(axosoftUrl, axosoftToken)
+                                .then(function(userIdAxo){
+                                    editedParams.filters = editedParams.filters + `,assigned_to.id=${userIdAxo}`;
+                                    return resolve(editedParams);
+                                }).catch(function(reason){
+                                    return reject(reason);
+                                })
                             }
                             else{
-                              return resolve(params);
+                              return resolve(editedParams);
                             }
                       });
                   });
 },
 
-paramsBuilderForInteractiveButtons: function(data){
+attachFiltersToParamsBaseOnRequestedKeyWord: function(params, txt){
+                                                if(txt.includes("open")){
+                                                  params.filters = 'completion_date="1899-01-01"';
+                                                  params.sort_fields = 'last_updated_date_time DESC';
+                                                }else if(txt.includes("closed")){
+                                                  params.filters = 'completion_date=in[last30_days]';
+                                                  params.sort_fields = 'completion_date DESC,last_updated_date_time DESC';
+                                                }else if(txt.includes("updated")){
+                                                  params.sort_fields = 'last_updated_date_time DESC';
+                                                }else if(txt.includes("ranked")){
+                                                  params.sort_fields = 'rank';
+                                                }else if(txt.includes("upcoming")){
+                                                    var today = new Date();
+                                                    Date.prototype.addDays = function(days){
+                                                        var date = new Date(this.valueOf());
+                                                        date.setDate(date.getDate() + days);
+                                                        return date;
+                                                    }
+                                                    params.due_date = `[${today.addDays(-90).toISOString()}=${today.addDays(14).toISOString()}]`;
+                                                    params.filters = 'completion_date="1899-01-01"';
+                                                    params.sort_fields = 'due_date,last_updated_date_time DESC';
+                                                }
+                                                return params;
+},
+
+paramsBuilderForInteractiveButtons: function(returnedDataFromDb, data){
                                         return new Promise(function(resolve, reject){
                                             var currentPageNumber = parseInt(module.exports.currentPage(data.original_message.text));
                                             module.exports.retrieveDataFromDataBase(data.team.id, data.user.id,"users")
@@ -748,14 +754,23 @@ paramsBuilderForInteractiveButtons: function(data){
                                                     page: (data.actions[0].name === "nextPage") ? currentPageNumber + 1 : currentPageNumber - 1
                                                 };
 
+                                                var editedParams = module.exports.attachFiltersToParamsBaseOnRequestedKeyWord(params, data.original_message.text);
                                                 var message = {
                                                     team: data.team.id,
                                                     user: data.user.id
                                                 };
 
-                                                module.exports.attachSelectedFilterToParams(message, params)
+                                                module.exports.attachSelectedFilterToParams(message, editedParams)
                                                 .then(function(params){
-                                                    resolve(params);
+                                                  if(data.original_message.text.includes("your")){
+                                                      module.exports.getUserIdAxosoft(returnedDataFromDb.axosoftBaseURL, returnedData.axosoftAccessToken)
+                                                      .then(function(axosoftUserId){
+                                                          params.filters = params.filters + `,assigned_to.id=${axosoftUserId}`;
+                                                          resolve(params);
+                                                      })
+                                                  }else{
+                                                     resolve(params);
+                                                  }
                                                 });
                                             })
                                             .catch(function(reason){
@@ -775,77 +790,77 @@ getParamsFromQueryString: function(query){
 },
 
 formatAxosoftItemData: function(item){
-  var fieldsArray = [];
+                          var fieldsArray = [];
 
-  Array.prototype.attachData = function(obj){
-  if(obj.value.length > 0)
-  this.push(obj);
-};
+                          Array.prototype.attachData = function(obj){
+                            if(obj.value.length > 0)
+                            this.push(obj);
+                          };
 
-  fieldsArray.attachData({
-    title: 'Project',
-    value: item['project'],
-    short: true
-  });
+                          fieldsArray.attachData({
+                            title: 'Project',
+                            value: item['project'],
+                            short: true
+                          });
 
-  fieldsArray.attachData({
-    title: 'Release',
-    value: item['release'],
-    short: true
-  });
+                          fieldsArray.attachData({
+                            title: 'Release',
+                            value: item['release'],
+                            short: true
+                          });
 
-  fieldsArray.attachData({
-    title: 'Workflow Step',
-    value: item['workflow_step'],
-    short: true
-  });
+                          fieldsArray.attachData({
+                            title: 'Workflow Step',
+                            value: item['workflow_step'],
+                            short: true
+                          });
 
-  fieldsArray.attachData({
-    title: 'Assigned To',
-    value: item['assigned_to'],
-    short: true
-  });
+                          fieldsArray.attachData({
+                            title: 'Assigned To',
+                            value: item['assigned_to'],
+                            short: true
+                          });
 
-  fieldsArray.attachData({
-    title: 'Priority',
-    value: item['priority'],
-    short: true
-  });
+                          fieldsArray.attachData({
+                            title: 'Priority',
+                            value: item['priority'],
+                            short: true
+                          });
 
-  if(item.hasOwnProperty("remaining_duration")){
-    fieldsArray.attachData({
-      title: 'Remaining Estimate',
-      value: item['remaining_duration']['duration_text'],
-      short: true
-    });
-  }
+                          if(item.hasOwnProperty("remaining_duration")){
+                            fieldsArray.attachData({
+                              title: 'Remaining Estimate',
+                              value: item['remaining_duration']['duration_text'],
+                              short: true
+                            });
+                          }
 
-  if (item['parent']['id'] > 0 ){
-    fieldsArray.attachData({
-      title: 'Parent',
-      value: `<${item.parent_link}|${item.parent.id}>`,
-      short: true
-    });
-  }
+                          if (item['parent']['id'] > 0 ){
+                            fieldsArray.attachData({
+                              title: 'Parent',
+                              value: `<${item.parent_link}|${item.parent.id}>`,
+                              short: true
+                            });
+                          }
 
-  //if work item type exists
-  if(item['custom_fields'] != undefined){
-    fieldsArray.attachData({
-      title: 'Work Item Type',
-      value: item['custom_fields'],
-      short: true
-    });
-  }
+                          //if work item type exists
+                          if(item['custom_fields'] != undefined){
+                            fieldsArray.attachData({
+                              title: 'Work Item Type',
+                              value: item['custom_fields'],
+                              short: true
+                            });
+                          }
 
-  if(item.hasOwnProperty("description")){
-    fieldsArray.attachData({
-      title: 'Description',
-      value: module.exports.trimDescription(item['description']),
-      short: false
-    });
-  }
+                          if(item.hasOwnProperty("description")){
+                            fieldsArray.attachData({
+                              title: 'Description',
+                              value: module.exports.trimDescription(item['description']),
+                              short: false
+                            });
+                          }
 
-  return fieldsArray;
+                          return fieldsArray;
 },
 
 trimDescription: function(description){
@@ -896,10 +911,8 @@ axosoftApiMethod: function(Axo, itemType){
                       }
 },
 
-axosoftFiltersBuilder: function(bot, message){
+axosoftFiltersBuilder: function(bot, message, axosoftData){
                           return new Promise(function(resolve, reject){
-                              module.exports.checkAxosoftDataForUser(bot, message)
-                              .then(function(axosoftData){
                                  var nodeAxo = new nodeAxosoft(axosoftData.axosoftBaseURL, axosoftData.axosoftAccessToken);
                                  var argArray = ["features"];
                                  nodeAxo.promisify(nodeAxo.axosoftApi.Filters.get, argArray)
@@ -910,18 +923,25 @@ axosoftFiltersBuilder: function(bot, message){
                                    console.log(reason);
                                    reject(reason);
                                  });
-                              })
-                              .catch(function(reason){
-                                  console.log(reason);
-                                  module.exports.createNewCollection(message)
-                                  .then(function(val){
-
-                                  })
-                                  .catch(function(reason){
-                                    console.log("Something went wrong with building a collection for the new user in the database!");
-                                  });
-                              });
                           });
+},
+
+categorizeAxosoftFilters: function(axosoftData ,axosoftFilters, bot, message){
+                              module.exports.retrieveDataFromDataBase(message.team, message.user, "users")
+                              .then(function(returnedData){
+                                  if(returnedData.hasOwnProperty("axosoftUserId")){
+                                     module.exports.findMyAxosoftFilters(axosoftFilters, returnedData.axosoftUserId);
+                                  }else{
+                                    module.exports.getUserIdAxosoft(axosoftData.axosoftBaseURL, returnedData.axosoftAccessToken)
+                                    .then(function(axosoftUserId){
+                                       module.exports.findMyAxosoftFilters(axosoftFilters, axosoftUserId);
+                                    })
+                                  }
+                              })
+},
+
+findMyAxosoftFilters: function(axosoftFilters, axosoftUserId){
+                       
 },
 
 actionArrayMaker: function(filters){

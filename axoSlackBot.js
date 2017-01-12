@@ -318,13 +318,26 @@ controller.hears(['help','Help','HELP'],['direct_message,direct_mention,mention'
 });
 
 controller.hears(['filters','Filters','FILTERS'],['direct_message,direct_mention,mention'],function(bot, message){
-    helper.axosoftFiltersBuilder(bot, message)
-    .then(function(axosoftFilters){
-      helper.filterButtons(bot, message, axosoftFilters.data);
+    helper.checkAxosoftDataForUser(bot, message)
+    .then(function(axosoftData){
+        helper.axosoftFiltersBuilder(bot, message, axosoftData)
+        .then(function(axosoftFilters){
+          helper.categorizeAxosoftFilters(axosoftData, axosoftFilters, bot, message);
+        })
+        .catch(function(reason){
+          console.log(reason);
+        });
     })
     .catch(function(reason){
-      console.log(reason);
-    });
+          console.log(reason);
+          module.exports.createNewCollection(message)
+          .then(function(val){
+              //TODO complete this method 
+          })
+          .catch(function(reason){
+            console.log("Something went wrong with building a collection for the new user in the database!");
+          });
+     });
 });
 
 //receive an interactive message, and reply with a message that will replace the original
@@ -335,7 +348,7 @@ controller.on('interactive_message_callback', function(bot, message) {
     if(data.actions[0].name === "previousPage" || data.actions[0].name === "nextPage" ){
       helper.retrieveDataFromDataBase(message.team.id, message.user,"teams")
       .then(function(returnedData){
-          helper.paramsBuilderForInteractiveButtons(data)
+          helper.paramsBuilderForInteractiveButtons(returnedData, data)
           .then(function(params){
              var nodeAxo = new nodeAxosoft(returnedData.axosoftBaseURL, params.access_token);
              var argsArray = [];
