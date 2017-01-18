@@ -101,56 +101,59 @@ sendDataToSlack: function(slackAccessToken, message, body, axoBaseUrl, axosoftTo
 },
 
 addFilterGroupLabel: function(attachmentArray, firstGroupFiltersCount){
-                       attachmentArray.splice(1,0,{text: `[My filters]`, color: "#ffffff"});
-                       attachmentArray.splice(firstGroupFiltersCount+2,0,{text: ` `, color: "#ffffff"});
-                       attachmentArray.splice(firstGroupFiltersCount+3,0,{text: `[Other filters]`, color: "#ffffff"});
+                       attachmentArray.splice(2,0,{text: `\`[My filters]\``, color: "#ffffff", mrkdwn_in:["text"]});
+                       attachmentArray.splice(firstGroupFiltersCount+3,0,{text: ` `, color: "#ffffff", mrkdwn_in:["text"]});
+                       attachmentArray.splice(firstGroupFiltersCount+4,0,{text: `\`[Other filters]\``, color: "#ffffff", mrkdwn_in:["text"]});
                        return attachmentArray;
 },
 
 //TODO add no filter
 //TODO 20 per page
 //TODO add previous & next page buttons
-//TODO filter currently is being used
 sendFiltersToSlack: function(slackAccessToken, message, filters, bot){
-                       var myFiltersTagAdded = false, otherFiltersTagAdded = false;
-                       var dictionary = [], attachments = [{
-                         title: 'Please type in the number of filter you would like to use?',
-                         color: "#ffffff"
-                       }];
+                      module.exports.retrieveDataFromDataBase(message.team, message.user,"users")
+                      .then(function(returnedData){
+                          var dictionary = [], attachments = [{
+                            title: `Please type in the number of the filter you would like to use.`,
+                            color: "#ffffff"
+                          }];
 
-                       var myFiltersCount = filters[0].myFilters.length;
-                       var otherFiltersCount = filters[0].otherFilters.length;
+                          (returnedData.filter == undefined)? attachments.push({text: `The current filter is \`No filter\``,color: "#ffffff", mrkdwn_in:["text"]}): attachments.push({text: `The current filter is \`[${returnedData.filter.filterName}]\``, color: "#ffffff", mrkdwn_in:["text"]});
+                          var myFiltersCount = filters[0].myFilters.length;
+                          var otherFiltersCount = filters[0].otherFilters.length;
 
-                       var totalCount = myFiltersCount + otherFiltersCount;
-                       for(x=0; x<totalCount; x++){
-                          attachments.push({
-                            text: `${x+1}:    ` + ((x < myFiltersCount)? filters[0].myFilters[x].name : filters[0].otherFilters[x- myFiltersCount].name),
-                            color: "#333333"
+                          var totalCount = myFiltersCount + otherFiltersCount;
+                          for(x=0; x<totalCount; x++){
+                              attachments.push({
+                                text: `${x+1}:    ` + ((x < myFiltersCount)? filters[0].myFilters[x].name : filters[0].otherFilters[x- myFiltersCount].name),
+                                color: "#333333"
+                              });
+
+                              dictionary.push({
+                                number: x + 1,
+                                filterName: (x < myFiltersCount)? filters[0].myFilters[x].name : filters[0].otherFilters[x- myFiltersCount].name
+                              });
+                          }
+
+                          var attachmentArray = module.exports.addFilterGroupLabel(attachments, myFiltersCount);
+                          bot.startConversation(message, function(err, convo){
+                                convo.ask({attachments:attachmentArray}, function(response, convo){
+                                    var selectedFilter = dictionary.find(function(filter){
+                                        return filter.number.toString() === response.text;
+                                    });
+
+                                    if(selectedFilter == undefined){
+                                      module.exports.sendTextToSlack(slackAccessToken, response.channel, "The entered filter number either is not valid or it does not exist. Please try again :slightly_smiling_face:");
+                                      convo.stop();
+                                    }else{
+                                      module.exports.saveAxosoftFilter(selectedFilter, response);
+                                      module.exports.sendTextToSlack(slackAccessToken, response.channel, `\`${selectedFilter.filterName}\` saved!`);
+                                      convo.stop();
+                                    }
+                                });
                           });
+                      })
 
-                          dictionary.push({
-                            number: x + 1,
-                            filterName: (x < myFiltersCount)? filters[0].myFilters[x].name : filters[0].otherFilters[x- myFiltersCount].name
-                          });
-                       }
-
-                       var attachmentArray = module.exports.addFilterGroupLabel(attachments, myFiltersCount);
-                       bot.startConversation(message, function(err, convo){
-                             convo.ask({attachments:attachmentArray}, function(response, convo){
-                                 var selectedFilter = dictionary.find(function(filter){
-                                    return filter.number.toString() === response.text;
-                                 });
-
-                                 if(selectedFilter == undefined){
-                                   module.exports.sendTextToSlack(slackAccessToken, response.channel, "The entered filter number either is not valid or it does not exist. Please try again :slightly_smiling_face:");
-                                   convo.stop();
-                                 }else{
-                                   module.exports.saveAxosoftFilter(selectedFilter, response);
-                                   module.exports.sendTextToSlack(slackAccessToken, response.channel, `\`${selectedFilter.filterName}\` saved!`);
-                                   convo.stop();
-                                 }
-                             });
-                       });
 },
 
 sendNewPageToSlack: function(slackAccessToken, axosoftBaseUrl, axosoftAccessToken, data, items){
