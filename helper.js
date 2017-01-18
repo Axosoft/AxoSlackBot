@@ -107,7 +107,6 @@ addFilterGroupLabel: function(attachmentArray, firstGroupFiltersCount){
                        return attachmentArray;
 },
 
-//TODO add no filter
 //TODO 20 per page
 //TODO add previous & next page buttons
 sendFiltersToSlack: function(slackAccessToken, message, filters, bot){
@@ -118,7 +117,10 @@ sendFiltersToSlack: function(slackAccessToken, message, filters, bot){
                             color: "#ffffff"
                           }];
 
-                          (returnedData.filter == undefined)? attachments.push({text: `The current filter is \`No filter\``,color: "#ffffff", mrkdwn_in:["text"]}): attachments.push({text: `The current filter is \`[${returnedData.filter.filterName}]\``, color: "#ffffff", mrkdwn_in:["text"]});
+                          (returnedData.filter == undefined)? 
+                           attachments.push({text: `The current filter is \`No filter\`. type \`0\` to remove the current filter`,color: "#ffffff", mrkdwn_in:["text"]}):
+                           attachments.push({text: `The current filter is \`[${returnedData.filter.filterName}]\`. type \`0\` to remove the current filter`, color: "#ffffff", mrkdwn_in:["text"]});
+
                           var myFiltersCount = filters[0].myFilters.length;
                           var otherFiltersCount = filters[0].otherFilters.length;
 
