@@ -100,6 +100,59 @@ sendDataToSlack: function(slackAccessToken, message, body, axoBaseUrl, axosoftTo
                     });
 },
 
+addFilterGroupLabel: function(attachmentArray, firstGroupFiltersCount){
+                       attachmentArray.splice(1,0,{text: `[My filters]`, color: "#ffffff"});
+                       attachmentArray.splice(firstGroupFiltersCount+2,0,{text: ` `, color: "#ffffff"});
+                       attachmentArray.splice(firstGroupFiltersCount+3,0,{text: `[Other filters]`, color: "#ffffff"});
+                       return attachmentArray;
+},
+
+//TODO add no filter
+//TODO 20 per page
+//TODO add previous & next page buttons
+//TODO filter currently is being used
+sendFiltersToSlack: function(slackAccessToken, message, filters, bot){
+                       var myFiltersTagAdded = false, otherFiltersTagAdded = false;
+                       var dictionary = [], attachments = [{
+                         title: 'Please type in the number of filter you would like to use?',
+                         color: "#ffffff"
+                       }];
+
+                       var myFiltersCount = filters[0].myFilters.length;
+                       var otherFiltersCount = filters[0].otherFilters.length;
+
+                       var totalCount = myFiltersCount + otherFiltersCount;
+                       for(x=0; x<totalCount; x++){
+                          attachments.push({
+                            text: `${x+1}:    ` + ((x < myFiltersCount)? filters[0].myFilters[x].name : filters[0].otherFilters[x- myFiltersCount].name),
+                            color: "#333333"
+                          });
+
+                          dictionary.push({
+                            number: x + 1,
+                            filterName: (x < myFiltersCount)? filters[0].myFilters[x].name : filters[0].otherFilters[x- myFiltersCount].name
+                          });
+                       }
+
+                       var attachmentArray = module.exports.addFilterGroupLabel(attachments, myFiltersCount);
+                       bot.startConversation(message, function(err, convo){
+                             convo.ask({attachments:attachmentArray}, function(response, convo){
+                                 var selectedFilter = dictionary.find(function(filter){
+                                    return filter.number.toString() === response.text;
+                                 });
+
+                                 if(selectedFilter == undefined){
+                                   module.exports.sendTextToSlack(slackAccessToken, response.channel, "The entered filter number either is not valid or it does not exist. Please try again :slightly_smiling_face:");
+                                   convo.stop();
+                                 }else{
+                                   module.exports.saveAxosoftFilter(selectedFilter, response);
+                                   module.exports.sendTextToSlack(slackAccessToken, response.channel, `\`${selectedFilter.filterName}\` saved!`);
+                                   convo.stop();
+                                 }
+                             });
+                       });
+},
+
 sendNewPageToSlack: function(slackAccessToken, axosoftBaseUrl, axosoftAccessToken, data, items){
                       var dataText = data.original_message.text;
                       var nextPageNumber, txt, currentPageNumber, myKeyWordExists;
@@ -566,7 +619,7 @@ axosoftLoginUrlBuilder: function(axosoftUrl, message){
                             return axosoftLoginUrl;
 },
 
-setAxosoftAccessToken:function(bot, message, axosoftUrl){
+setAxosoftAccessToken: function(bot, message, axosoftUrl){
                           var axosoftLoginUrl = module.exports.axosoftLoginUrlBuilder(axosoftUrl, message);
                           bot.reply(message, `I need permissions to talk to your Axosoft account. <${axosoftLoginUrl}|Click here to Authorize>`);
 },
@@ -926,22 +979,45 @@ axosoftFiltersBuilder: function(bot, message, axosoftData){
                           });
 },
 
+//TODO catch block is required
 categorizeAxosoftFilters: function(axosoftData ,axosoftFilters, bot, message){
-                              module.exports.retrieveDataFromDataBase(message.team, message.user, "users")
-                              .then(function(returnedData){
-                                  if(returnedData.hasOwnProperty("axosoftUserId")){
-                                     module.exports.findMyAxosoftFilters(axosoftFilters, returnedData.axosoftUserId);
-                                  }else{
-                                    module.exports.getUserIdAxosoft(axosoftData.axosoftBaseURL, returnedData.axosoftAccessToken)
-                                    .then(function(axosoftUserId){
-                                       module.exports.findMyAxosoftFilters(axosoftFilters, axosoftUserId);
-                                    })
-                                  }
-                              })
+                            return new Promise(function(resolve, reject){
+                                module.exports.retrieveDataFromDataBase(message.team, message.user, "users")
+                                .then(function(returnedData){
+                                    if(returnedData.hasOwnProperty("axosoftUserId")){
+                                        resolve(module.exports.filtersSeparator(axosoftFilters, returnedData.axosoftUserId));
+                                    }else{
+                                      module.exports.getUserIdAxosoft(axosoftData.axosoftBaseURL, returnedData.axosoftAccessToken)
+                                      .then(function(axosoftUserId){
+                                        resolve(module.exports.filtersSeparator(axosoftFilters, axosoftUserId));
+                                      })
+                                      .catch(function(reason){
+                                        //TODO
+                                        console.log(reason);
+                                      })
+                                    }
+                                })
+                                .catch(function(reason){
+                                  //TODO
+                                  console.log(reason);
+                                })
+                            });
 },
 
-findMyAxosoftFilters: function(axosoftFilters, axosoftUserId){
-                       
+filtersSeparator: function(axosoftFilters, axosoftUserId){
+                      var myFilters = [], otherFilters = [];
+                      axosoftFilters.data.forEach(function(filter){
+                        if(filter.user.id == axosoftUserId){
+                              myFilters.push(filter);
+                        }else{
+                            otherFilters.push(filter);
+                        }
+                      });
+
+                      return [{
+                        myFilters: myFilters,
+                        otherFilters: otherFilters
+                      }];
 },
 
 actionArrayMaker: function(filters){
@@ -1018,10 +1094,10 @@ filterButtons: function(bot, message, filters){
                       });
 },
 
-saveAxosoftFilter: function(data){
-                    var userId = data.user.id;
-                    var teamId = data.team.id;
-                    //TODO make sure document exists before you store the axosoftFilter in da database
+saveAxosoftFilter: function(data, response){
+                    var userId = response.user;
+                    var teamId = response.team;
+                    //TODO make sure document exists before storing the axosoftFilter in da database
 
                     MongoClient.connect(config.mongoUri,function(err, database){
                       if(err){
@@ -1030,7 +1106,7 @@ saveAxosoftFilter: function(data){
                         database.collection('users').findAndModify(
                            {id: userId, team_id: teamId},
                            [],
-                           {$set: {axsoftFilter: data.actions[0]}},
+                           {$set: {axsoftFilter: data}},
                            {},
                            function(err, object){
                               if (err){

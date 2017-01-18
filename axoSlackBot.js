@@ -290,6 +290,7 @@ controller.hears('(.*)(axo)(d|f|t|i|[]{0})(\\s|[]{0})(\\d+)(.*)',['direct_messag
 });
 
 controller.hears([/update url/i],['direct_message,direct_mention,mention'],function(bot, message){
+    //TODO why this method returns a promise? is it required?
     helper.setAxosoftBaseUrl(bot, message);
 });
 
@@ -322,7 +323,13 @@ controller.hears(['filters','Filters','FILTERS'],['direct_message,direct_mention
     .then(function(axosoftData){
         helper.axosoftFiltersBuilder(bot, message, axosoftData)
         .then(function(axosoftFilters){
-          helper.categorizeAxosoftFilters(axosoftData, axosoftFilters, bot, message);
+          helper.categorizeAxosoftFilters(axosoftData, axosoftFilters, bot, message)
+          .then(function(categorizedAxosoftFilters){
+             helper.retrieveDataFromDataBase(message.team, message.user,"teams")
+             .then(function(returnedData){
+               helper.sendFiltersToSlack(returnedData.slackAccessToken, message, categorizedAxosoftFilters, bot);
+             })//TODO catch block here?
+          })
         })
         .catch(function(reason){
           console.log(reason);
@@ -332,7 +339,7 @@ controller.hears(['filters','Filters','FILTERS'],['direct_message,direct_mention
           console.log(reason);
           module.exports.createNewCollection(message)
           .then(function(val){
-              //TODO complete this method 
+              //TODO complete this method
           })
           .catch(function(reason){
             console.log("Something went wrong with building a collection for the new user in the database!");
@@ -342,7 +349,7 @@ controller.hears(['filters','Filters','FILTERS'],['direct_message,direct_mention
 
 //receive an interactive message, and reply with a message that will replace the original
 controller.on('interactive_message_callback', function(bot, message) {
-    //TODO do not forget to check token (message.token) to make sure request is coming from a friendly source
+    //TODO check token (message.token)
     var data = JSON.parse(message.payload);
 
     if(data.actions[0].name === "previousPage" || data.actions[0].name === "nextPage" ){
@@ -371,11 +378,6 @@ controller.on('interactive_message_callback', function(bot, message) {
       .catch(function(reason){
         console.log(reason);
       });
-    }else{
-        helper.saveAxosoftFilter(data);
-        bot.replyInteractive(message, {
-            text: `You selected \`${data.actions[0].name}\` filter!`
-        });
     }
 });
 
