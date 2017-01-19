@@ -133,7 +133,8 @@ sendFiltersToSlack: function(slackAccessToken, message, filters, bot){
 
                               dictionary.push({
                                 number: x + 1,
-                                filterName: (x < myFiltersCount)? filters[0].myFilters[x].name : filters[0].otherFilters[x- myFiltersCount].name
+                                filterName: (x < myFiltersCount)? filters[0].myFilters[x].name : filters[0].otherFilters[x-myFiltersCount].name,
+                                filterId: (x < myFiltersCount)? filters[0].myFilters[x].id : filters[0].otherFilters[x-myFiltersCount].id
                               });
                           }
 
