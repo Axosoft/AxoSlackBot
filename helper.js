@@ -6,6 +6,7 @@ const striptags = require('striptags');
 const urlEncode = require('urlencode');
 const nodeAxosoft = require('./nodeAxosoft.js');
 const entities = require("entities");
+const store = require('./store.js');
 
 module.exports = {
 makeRequest: function(method, URL, params, callback){
@@ -111,15 +112,32 @@ addFilterGroupLabel: function(attachmentArray, firstGroupFiltersCount, totalCoun
                          attachmentArray.splice(firstGroupFiltersCount+4,0,{text: `\`[Other filters]\``, color: "#ffffff", mrkdwn_in:["text"]});
                        }
 
-                       (totalCount <= 15) ? attachmentArray : attachmentArray.push("Add next/prevoius buttons here");
+                       (totalCount <= 15) ? attachmentArray : module.exports.addFilterButton(attachmentArray);
                        return attachmentArray;
 },
 
+addFilterButton: function(array){
+                    array.push({
+                        fallback: "You are unable to go to the next filter page",
+                        callback_id: "filter_page",
+                        color: "#333333",
+                        attachment_type: "default",
+                        actions: [{
+                            name: "nextfilterPage",
+                            text: "Next 10 filters",
+                            type: "button",
+                            value: "nextfilterPage"
+                        }]
+                    });
+},
+
 //TODO add there is no filter currently applied/selected
-//TODO add previous & next page buttons
 sendFiltersToSlack: function(slackAccessToken, message, filters, bot){
                       module.exports.retrieveDataFromDataBase(message.team, message.user,"users")
                       .then(function(returnedData){
+                          var myFiltersCount = filters[0].myFilters.length, otherFiltersCount = filters[0].otherFilters.length, count = 0;
+                          store.default.filters = filters;
+
                           var dictionary = [], attachments = [{
                             title: `Please type in the number of the filter you would like to use.`,
                             color: "#ffffff"
@@ -129,10 +147,8 @@ sendFiltersToSlack: function(slackAccessToken, message, filters, bot){
                            attachments.push({text: `The current filter is \`No filter\`. type \`0\` to remove the current filter`,color: "#ffffff", mrkdwn_in:["text"]}):
                            attachments.push({text: `The current filter is \`[${returnedData.filter.filterName}]\`. type \`0\` to remove the current filter`, color: "#ffffff", mrkdwn_in:["text"]});
 
-                          var myFiltersCount = filters[0].myFilters.length;
-                          var otherFiltersCount = filters[0].otherFilters.length;
-
-                          for(x=0; x<15; x++){
+                          ((myFiltersCount < 15) && (otherFiltersCount + myFiltersCount < 15)) ? count = otherFiltersCount + myFiltersCount : count = 15;
+                          for(x=0; x<count; x++){
                               attachments.push({
                                 text: `${x+1}:    ` + ((x < myFiltersCount)? filters[0].myFilters[x].name : filters[0].otherFilters[x- myFiltersCount].name),
                                 color: "#333333"
@@ -143,6 +159,8 @@ sendFiltersToSlack: function(slackAccessToken, message, filters, bot){
                                 filterName: (x < myFiltersCount)? filters[0].myFilters[x].name : filters[0].otherFilters[x-myFiltersCount].name,
                                 filterId: (x < myFiltersCount)? filters[0].myFilters[x].id : filters[0].otherFilters[x-myFiltersCount].id
                               });
+
+                              if(x == count-1) store.default.currentFiltersCount = count;
                           }
 
                           var attachmentArray = module.exports.addFilterGroupLabel(attachments, myFiltersCount, myFiltersCount + otherFiltersCount);
