@@ -118,17 +118,41 @@ addFilterGroupLabel: function(attachmentArray, filters){
 },
 
 addFilterButton: function(array){
+                    var actionObject = [];
+                    if(store.default.currentPageNumber == 0){
+                      actionObject = [{
+                           name: "nextfilterPage",
+                           text: "Next 10 filters",
+                           type: "button",
+                           value: "nextfilterPage"
+                       }]
+                    }else if(store.default.currentPageNumber == store.default.filters.length){
+                      actionObject = [{
+                            name: "previousfilterPage",
+                            text: "Previous 10 filters",
+                            type: "button",
+                            value: "previousfilterPage"
+                       }]
+                    }else{
+                      actionObject =[{
+                            name: "previousfilterPage",
+                            text: "Previous 10 filters",
+                            type: "button",
+                            value: "previousfilterPage"
+                        },{
+                           name: "nextfilterPage",
+                           text: "Next 10 filters",
+                           type: "button",
+                           value: "nextfilterPage"
+                       }]
+                    }
+
                     array.push({
                         fallback: "You are unable to go to the next filter page",
                         callback_id: "filter_page",
                         color: "#333333",
                         attachment_type: "default",
-                        actions: [{
-                            name: "nextfilterPage",
-                            text: "Next 10 filters",
-                            type: "button",
-                            value: "nextfilterPage"
-                        }]
+                        actions: actionObject
                     });
 },
 
@@ -140,6 +164,7 @@ sendFiltersToSlack: function(slackAccessToken, message, filters, bot){
                           store.default.filters = filters;
                           store.default.bot = bot;
                           store.default.slackAccessToken = slackAccessToken;
+                          store.default.currentPageNumber = 0;
 
                           var dictionary = [], attachments = [{
                             title: `Please type in the number of the filter you would like to use.`,
@@ -174,7 +199,26 @@ sendFiltersToSlack: function(slackAccessToken, message, filters, bot){
                               attachments: JSON.stringify(attachmentArray),
                               replace_original: true
                           };
-                          module.exports.makeRequest("GET","https://slack.com/api/chat.postMessage", params, function(err, response, body){});
+
+                          bot.startConversation(message, function(err, convo){ 
+                                convo.ask({attachments:attachmentArray}, function(response, convo){ 
+                                    var selectedFilter = dictionary.find(function(filter){ 
+                                        return filter.number.toString() === response.text; 
+                                    }); 
+                                    
+                                    if(response.original_message.text == ""){
+                                      //meaning user clicked on the next/previous buttons
+                                      convo.stop();
+                                    }else if(selectedFilter == undefined){ 
+                                      module.exports.sendTextToSlack(slackAccessToken, response.channel, "The entered filter number either is not valid or it does not exist. Please try again :slightly_smiling_face:"); 
+                                      convo.stop(); 
+                                    }else{ 
+                                      module.exports.saveAxosoftFilter(selectedFilter, response); 
+                                      module.exports.sendTextToSlack(slackAccessToken, response.channel, `\`${selectedFilter.filterName}\` saved!`); 
+                                      convo.stop(); 
+                                    } 
+                                }); 
+                          }); 
                       })
 },
 
