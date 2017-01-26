@@ -101,18 +101,19 @@ sendDataToSlack: function(slackAccessToken, message, body, axoBaseUrl, axosoftTo
                     });
 },
 
-addFilterGroupLabel: function(attachmentArray, firstGroupFiltersCount, totalCount){
-                       if(firstGroupFiltersCount >= 15){
+addFilterGroupLabel: function(attachmentArray, filters){
+                       if(filters[0].myFilters.length == 0){
+                          attachmentArray.splice(2,0,{text: `\`[Other filters]\``, color: "#ffffff", mrkdwn_in:["text"]});
+                       }else if(filters[0].otherFilters.length == 0){
                          attachmentArray.splice(2,0,{text: `\`[My filters]\``, color: "#ffffff", mrkdwn_in:["text"]});
-                       }else if(firstGroupFiltersCount == 0){
-                         attachmentArray.splice(firstGroupFiltersCount+4,0,{text: `\`[Other filters]\``, color: "#ffffff", mrkdwn_in:["text"]});
-                       }else{
+                       }
+                       else{
                          attachmentArray.splice(2,0,{text: `\`[My filters]\``, color: "#ffffff", mrkdwn_in:["text"]});
-                         attachmentArray.splice(firstGroupFiltersCount+3,0,{text: ` `, color: "#ffffff", mrkdwn_in:["text"]});
-                         attachmentArray.splice(firstGroupFiltersCount+4,0,{text: `\`[Other filters]\``, color: "#ffffff", mrkdwn_in:["text"]});
+                         attachmentArray.splice(myFiltersCount+3,0,{text: ` `, color: "#ffffff", mrkdwn_in:["text"]});
+                         attachmentArray.splice(myFiltersCount+4,0,{text: `\`[Other filters]\``, color: "#ffffff", mrkdwn_in:["text"]});
                        }
 
-                       (totalCount <= 15) ? attachmentArray : module.exports.addFilterButton(attachmentArray);
+                       (filters.length > 1) ? module.exports.addFilterButton(attachmentArray) : attachmentArray;
                        return attachmentArray;
 },
 
@@ -165,7 +166,7 @@ sendFiltersToSlack: function(slackAccessToken, message, filters, bot){
                               if(x == count-1) store.default.currentFiltersCount = count;
                           }
 
-                          var attachmentArray = module.exports.addFilterGroupLabel(attachments, myFiltersCount, myFiltersCount + otherFiltersCount);
+                          var attachmentArray = module.exports.addFilterGroupLabel(attachments, filters);
                           var params = {
                               token: slackAccessToken,
                               channel: message.channel,
@@ -1023,8 +1024,8 @@ pageAxosoftFilters: function(filters, axosoftUserId){
                         }
 
                         axosoftPagedFilters.push({
-                          myFilters: (myF.length == 0) ? 0 : myF,
-                          otherFilters: (otherF.length) ? otherF : 0
+                          myFilters: (myF.length == 0) ? [] : myF,
+                          otherFilters: (otherF.length) ? otherF : []
                         });
                         myF = [], otherF = [];
                       }
