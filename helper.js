@@ -137,6 +137,8 @@ sendFiltersToSlack: function(slackAccessToken, message, filters, bot){
                       .then(function(returnedData){
                           var myFiltersCount = filters[0].myFilters.length, otherFiltersCount = filters[0].otherFilters.length, count = 0;
                           store.default.filters = filters;
+                          store.default.bot = bot;
+                          store.default.slackAccessToken = slackAccessToken;
 
                           var dictionary = [], attachments = [{
                             title: `Please type in the number of the filter you would like to use.`,
@@ -164,24 +166,15 @@ sendFiltersToSlack: function(slackAccessToken, message, filters, bot){
                           }
 
                           var attachmentArray = module.exports.addFilterGroupLabel(attachments, myFiltersCount, myFiltersCount + otherFiltersCount);
-                          bot.startConversation(message, function(err, convo){
-                                convo.ask({attachments:attachmentArray}, function(response, convo){
-                                    var selectedFilter = dictionary.find(function(filter){
-                                        return filter.number.toString() === response.text;
-                                    });
-
-                                    if(selectedFilter == undefined){
-                                      module.exports.sendTextToSlack(slackAccessToken, response.channel, "The entered filter number either is not valid or it does not exist. Please try again :slightly_smiling_face:");
-                                      convo.stop();
-                                    }else{
-                                      module.exports.saveAxosoftFilter(selectedFilter, response);
-                                      module.exports.sendTextToSlack(slackAccessToken, response.channel, `\`${selectedFilter.filterName}\` saved!`);
-                                      convo.stop();
-                                    }
-                                });
-                          });
+                          var params = {
+                              token: slackAccessToken,
+                              channel: message.channel,
+                              mrkdwn: true,
+                              attachments: JSON.stringify(attachmentArray),
+                              replace_original: true
+                          };
+                          module.exports.makeRequest("GET","https://slack.com/api/chat.postMessage", params, function(err, response, body){});
                       })
-
 },
 
 sendNewPageToSlack: function(slackAccessToken, axosoftBaseUrl, axosoftAccessToken, data, items){
@@ -770,7 +763,7 @@ paramsBuilder: function(axosoftUrl, axosoftToken, slackToken, message){
                       module.exports.attachSelectedFilterToParams(message, params)
                       .then(function(params){
                             var keyWord = message.match[2].toLowerCase();
-                            if(keyWord != "open " && keyWord != "closed " && keyWord != "updated " && keyWord != "ranked " && keyWord != "upcoming " ){
+                            if(keyWord != "open " && keyWord != "closed " && keyWord != "updated " && keyWord != "ranked " && keyWord != "upcoming " && keyWord != ""){
                               module.exports.sendTextToSlack(slackToken, message.channel,"I don't understand what you want me to do. You can ask me 'help' for a list of supported commands");
                               reject("vague Request");
                             }
@@ -1010,17 +1003,47 @@ axosoftFiltersBuilder: function(bot, message, axosoftData){
                           });
 },
 
+pageAxosoftFilters: function(filters, axosoftUserId){
+                      var myFiltersLength = filters[0].myFilters.length;
+                      var otherFiltersLength = filters[0].otherFilters.length;
+
+                      var groupsCount = 0, dividendFilters = (myFiltersLength + otherFiltersLength)/15, axosoftPagedFilters = [];
+                      (dividendFilters % 1 === 0) ? groupsCount = dividendFilters : groupsCount = Math.floor(dividendFilters) + 1;
+
+                      var myF = [], otherF = [];
+                      for(x=0; x<groupsCount; x++){
+                        for(s=0; s<15; s++){
+                          if(s + (x * 15) < myFiltersLength){
+                            myF.push(filters[0].myFilters[s + (x * 15)]);
+                          }
+
+                          if(filters[0].otherFilters[s + (x * 15) - myFiltersLength] != undefined){
+                            otherF.push(filters[0].otherFilters[s + (x * 15) - myFiltersLength]);
+                          }
+                        }
+
+                        axosoftPagedFilters.push({
+                          myFilters: (myF.length == 0) ? 0 : myF,
+                          otherFilters: (otherF.length) ? otherF : 0
+                        });
+                        myF = [], otherF = [];
+                      }
+                      return axosoftPagedFilters;
+},
+
 //TODO catch block is required
 categorizeAxosoftFilters: function(axosoftData ,axosoftFilters, bot, message){
                             return new Promise(function(resolve, reject){
                                 module.exports.retrieveDataFromDataBase(message.team, message.user, "users")
                                 .then(function(returnedData){
                                     if(returnedData.hasOwnProperty("axosoftUserId")){
-                                        resolve(module.exports.filtersSeparator(axosoftFilters, returnedData.axosoftUserId));
+                                        var separatedFilters = sepamodule.exports.filtersSeparator(axosoftFilters, returnedData.axosoftUserId);
+                                        resolve(module.exports.pageAxosoftFilters(separatedFilters, axosoftUserId));
                                     }else{
                                       module.exports.getUserIdAxosoft(axosoftData.axosoftBaseURL, returnedData.axosoftAccessToken)
                                       .then(function(axosoftUserId){
-                                        resolve(module.exports.filtersSeparator(axosoftFilters, axosoftUserId));
+                                        var separatedFilters = module.exports.filtersSeparator(axosoftFilters, axosoftUserId);
+                                        resolve(module.exports.pageAxosoftFilters(separatedFilters, axosoftUserId));
                                       })
                                       .catch(function(reason){
                                         //TODO
@@ -1035,9 +1058,11 @@ categorizeAxosoftFilters: function(axosoftData ,axosoftFilters, bot, message){
                             });
 },
 
-filtersSeparator: function(axosoftFilters, axosoftUserId){
+filtersSeparator: function(pagedAxosoftFilters, axosoftUserId){
                       var myFilters = [], otherFilters = [];
-                      axosoftFilters.forEach(function(filter){
+                      var pagesCount = pagedAxosoftFilters.length;
+
+                      pagedAxosoftFilters.forEach(function(filter){
                         if(filter.user.id == axosoftUserId){
                             myFilters.push(filter);
                         }else{
