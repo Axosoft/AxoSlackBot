@@ -738,6 +738,8 @@ axosoftApiMethod: function(Axo, itemType){
                         return Axo.axosoftApi.Tasks;
                       }else if(itemType == "incidents"){
                         return Axo.axosoftApi.Incidents;
+                      }else if(itemType == "defects"){
+                        return Axo.axosoftApi.Defects;
                       }else{
                         return Axo.axosoftApi.Features;
                       }
