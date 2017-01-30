@@ -349,12 +349,18 @@ controller.hears(['filters','Filters','FILTERS'],['direct_message,direct_mention
 });
 
 controller.hears('(^[0-9]*$)',['direct_message,direct_mention,mention'],function(bot, message){
-    var selectedFilter = store.default.dictionary.find(function(filter){
-        return filter.number.toString() === message.text;
-    });
+    if(store.default.user === message.user && store.default.channel === message.channel){
+      var selectedFilter = store.default.dictionary.find(function(filter){
+          return filter.number.toString() === message.text;
+      });
 
-    helper.saveAxosoftFilter(selectedFilter, message);
-    helper.sendTextToSlack(store.default.slackAccessToken, message.channel, `\`${selectedFilter.filterName}\` saved!`);
+      if(selectedFilter != undefined){
+         helper.saveAxosoftFilter(selectedFilter, message);
+         helper.sendTextToSlack(store.default.slackAccessToken, message.channel, `\`${selectedFilter.filterName}\` saved!`);
+      }else{
+        helper.sendTextToSlack(store.default.slackAccessToken, message.channel, "The entered filter number is not valid. Please try again :slightly_smiling_face:");
+      }
+    }
 });
 
 //receive an interactive message, and reply with a message that will replace the original
