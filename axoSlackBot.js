@@ -10,6 +10,7 @@ const urlEncode = require('urlencode');
 const controller = Botkit.slackbot({storage: mongoStorage, interactive_replies: true});
 const qs = require('querystring');
 const striptags = require('striptags');
+const store = require('./store.js');
 
 if (!config.clientId || !config.clientSecret || !config.port) {
   console.log('Error: Specify clientId clientSecret and port in environment');
@@ -378,6 +379,9 @@ controller.on('interactive_message_callback', function(bot, message) {
       .catch(function(reason){
         console.log(reason);
       });
+    }else if(data.actions[0].name == "nextfilterPage" || data.actions[0].name =="previousfilterPage"){
+      (data.actions[0].name == "nextfilterPage") ? store.default.requestedPage = store.default.requestedPage + 1 : store.default.requestedPage = store.default.requestedPage - 1;
+      helper.sendNewFiltersToSlack(message);
     }
 });
 
