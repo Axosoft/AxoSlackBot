@@ -33,8 +33,8 @@ filterTextMaker: function(message){
                   var filterText = "";
                   module.exports.retrieveDataFromDataBase(message.team, message.user,"users")
                   .then(function(returnedData){
-                          if(returnedData.filter.name != "noFilter"){
-                             filterText = ` filtered by \`${returnedData.filter.name}\``
+                          if(returnedData.filter.filterName != null){
+                             filterText = ` filtered by \`${returnedData.filter.filterName}\``
                           }
                           resolve(filterText);
                   });
@@ -826,8 +826,8 @@ attachSelectedFilterToParams: function(message, params){
                                   return new Promise(function(resolve, reject){
                                       module.exports.retrieveDataFromDataBase(message.team, message.user,"users")
                                       .then(function(returnedData){
-                                          if(returnedData.filter.name != "noFilter" && returnedData.filter != undefined){
-                                            params.filter_id = returnedData.filter.value
+                                          if(returnedData.filter.filterName != null && returnedData.filter != undefined){
+                                            params.filter_id = returnedData.filter.filterId
                                           }
                                           resolve(params);
                                       }).catch(function(reason){
