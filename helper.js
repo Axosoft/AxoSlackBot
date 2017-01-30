@@ -126,7 +126,7 @@ addFilterButton: function(array){
                            type: "button",
                            value: "nextfilterPage"
                        }]
-                    }else if(store.default.requestedPage == store.default.filters.length){
+                    }else if(store.default.requestedPage == store.default.filters.length || store.default.requestedPage == store.default.filters.length-1){
                       actionObject = [{
                             name: "previousfilterPage",
                             text: "Previous 10 filters",
