@@ -156,7 +156,6 @@ addFilterButton: function(array){
                     });
 },
 
-//TODO add there is no filter currently applied/selected
 sendFiltersToSlack: function(slackAccessToken, message, filters, bot){
                       module.exports.retrieveDataFromDataBase(message.team, message.user,"users")
                       .then(function(returnedData){
@@ -178,7 +177,7 @@ sendFiltersToSlack: function(slackAccessToken, message, filters, bot){
                           }
 
                           store.default.text = attachments[1].text;
-                          ((myFiltersCount < 14) && (otherFiltersCount + myFiltersCount < 14)) ? count = otherFiltersCount + myFiltersCount : count = 14;
+                          ((myFiltersCount < 10) && (otherFiltersCount + myFiltersCount < 10)) ? count = otherFiltersCount + myFiltersCount : count = 10;
                           for(x=0; x<count; x++){
                               attachments.push({
                                 text: `${x+1}:    ` + ((x < myFiltersCount)? filters[0].myFilters[x].name : filters[0].otherFilters[x- myFiltersCount].name),
@@ -1094,18 +1093,18 @@ pageAxosoftFilters: function(filters, axosoftUserId){
                       var myFiltersLength = filters[0].myFilters.length;
                       var otherFiltersLength = filters[0].otherFilters.length;
 
-                      var groupsCount = 0, dividendFilters = (myFiltersLength + otherFiltersLength)/14, axosoftPagedFilters = [];
+                      var groupsCount = 0, dividendFilters = (myFiltersLength + otherFiltersLength)/10, axosoftPagedFilters = [];
                       (dividendFilters % 1 === 0) ? groupsCount = dividendFilters : groupsCount = Math.floor(dividendFilters) + 1;
 
                       var myF = [], otherF = [];
                       for(x=0; x<groupsCount; x++){
-                        for(s=0; s<14; s++){
-                          if(s + (x * 14) < myFiltersLength){
-                            myF.push(filters[0].myFilters[s + (x * 14)]);
+                        for(s=0; s<10; s++){
+                          if(s + (x * 10) < myFiltersLength){
+                            myF.push(filters[0].myFilters[s + (x * 10)]);
                           }
 
-                          if(filters[0].otherFilters[s + (x * 14) - myFiltersLength] != undefined){
-                            otherF.push(filters[0].otherFilters[s + (x * 14) - myFiltersLength]);
+                          if(filters[0].otherFilters[s + (x * 10) - myFiltersLength] != undefined){
+                            otherF.push(filters[0].otherFilters[s + (x * 10) - myFiltersLength]);
                           }
                         }
 
