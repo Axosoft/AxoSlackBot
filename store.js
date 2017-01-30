@@ -1,8 +1,9 @@
 module.exports = {
     default: {
         filters: null,
-        bot: null,
         slackAccessToken: null,
-        requestedPage: 0
+        requestedPage: 0,
+        user: null,
+        channel: null
     }
 };
