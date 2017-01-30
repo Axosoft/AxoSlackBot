@@ -1126,20 +1126,16 @@ categorizeAxosoftFilters: function(axosoftData ,axosoftFilters, bot, message){
                                         var separatedFilters = sepamodule.exports.filtersSeparator(axosoftFilters, returnedData.axosoftUserId);
                                         resolve(module.exports.pageAxosoftFilters(separatedFilters, axosoftUserId));
                                     }else{
-                                      module.exports.getUserIdAxosoft(axosoftData.axosoftBaseURL, returnedData.axosoftAccessToken)
-                                      .then(function(axosoftUserId){
-                                        var separatedFilters = module.exports.filtersSeparator(axosoftFilters, axosoftUserId);
-                                        resolve(module.exports.pageAxosoftFilters(separatedFilters, axosoftUserId));
-                                      })
-                                      .catch(function(reason){
-                                        //TODO
-                                        console.log(reason);
-                                      })
+                                       module.exports.getUserIdAxosoft(axosoftData.axosoftBaseURL, returnedData.axosoftAccessToken)
+                                       .then(function(axosoftUserId){
+                                         var separatedFilters = module.exports.filtersSeparator(axosoftFilters, axosoftUserId);
+                                         resolve(module.exports.pageAxosoftFilters(separatedFilters, axosoftUserId));
+                                       })
                                     }
                                 })
                                 .catch(function(reason){
-                                  //TODO
                                   console.log(reason);
+                                  reject(reason);
                                 })
                             });
 },

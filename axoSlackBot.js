@@ -320,32 +320,25 @@ controller.hears(['help','Help','HELP'],['direct_message,direct_mention,mention'
 });
 
 controller.hears(['filters','Filters','FILTERS'],['direct_message,direct_mention,mention'],function(bot, message){
+    var axosoftData, categorizedAxosoftFilters;
     helper.checkAxosoftDataForUser(bot, message)
-    .then(function(axosoftData){
-        helper.axosoftFiltersBuilder(bot, message, axosoftData)
-        .then(function(axosoftFilters){
-          helper.categorizeAxosoftFilters(axosoftData, axosoftFilters, bot, message)
-          .then(function(categorizedAxosoftFilters){
-             helper.retrieveDataFromDataBase(message.team, message.user,"teams")
-             .then(function(returnedData){
-               helper.sendFiltersToSlack(returnedData.slackAccessToken, message, categorizedAxosoftFilters, bot);
-             })//TODO catch block here?
-          })
-        })
-        .catch(function(reason){
-          console.log(reason);
-        });
+    .then(function(_axosoftData){
+      axosoftData = _axosoftData;
+      return helper.axosoftFiltersBuilder(bot, message, axosoftData);
+    })
+    .then(function(axosoftFilters){
+      return helper.categorizeAxosoftFilters(axosoftData, axosoftFilters, bot, message);
+    })
+    .then(function(_categorizedAxosoftFilters){
+      categorizedAxosoftFilters = _categorizedAxosoftFilters;
+      return helper.retrieveDataFromDataBase(message.team, message.user,"teams");
+    })
+    .then(function(returnedData){
+      return helper.sendFiltersToSlack(returnedData.slackAccessToken, message, categorizedAxosoftFilters, bot);
     })
     .catch(function(reason){
-          console.log(reason);
-          module.exports.createNewCollection(message)
-          .then(function(val){
-              //TODO complete this method
-          })
-          .catch(function(reason){
-            console.log("Something went wrong with building a collection for the new user in the database!");
-          });
-     });
+
+    });
 });
 
 controller.hears('(^[0-9]*$)',['direct_message,direct_mention,mention'],function(bot, message){
