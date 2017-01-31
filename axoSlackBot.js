@@ -337,7 +337,8 @@ controller.hears(['filters','Filters','FILTERS'],['direct_message,direct_mention
       return helper.sendFiltersToSlack(returnedData.slackAccessToken, message, categorizedAxosoftFilters, bot);
     })
     .catch(function(reason){
-
+        //TODO handler for here is required
+        console.log(reason);
     });
 });
 

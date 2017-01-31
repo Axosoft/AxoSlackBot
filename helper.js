@@ -219,9 +219,8 @@ sendFiltersToSlack: function(slackAccessToken, message, filters, bot){
                           });
                       })
 },
-
+//TODO These two (sendNewFiltersToSlack and sendFiltersToSlack) methods, need to to get combined/refactor
 sendNewFiltersToSlack: function(message){
-                          //TODO make sure store.default != null
                           var requestPageNumber = 0, dictionary = [], addButton, attachments = [{
                             title: `Please type in the number of the filter you would like to use.`,
                             color: "#ffffff"
@@ -261,7 +260,7 @@ sendNewFiltersToSlack: function(message){
                             store.default.user = message.user;
                             store.default.channel = Body.channel;
                           });
- },
+},
 
 sendNewPageToSlack: function(slackAccessToken, axosoftBaseUrl, axosoftAccessToken, data, items){
                       var dataText = data.original_message.text;
@@ -582,19 +581,20 @@ saveAxosoftUrl: function(data, baseUrl) {
 
 checkAxosoftDataForUser: function(bot, message) {
                             var userData = {};
-                            return new Promise(function(resolve, reject) {
+                            return new Promise(function(resolve, reject){
                               MongoClient.connect(config.mongoUri, function(err, database){
                                 module.exports.getAxosoftBaseUrl(bot, message, database)
                                 .then(function(axosoftBaseURL){
-                                  userData.axosoftBaseURL = axosoftBaseURL;
-                                  var axosoftAccessToken = module.exports.getAxosoftAccessToken(bot, message, database, axosoftBaseURL)
-                                  return axosoftAccessToken})
+                                    userData.axosoftBaseURL = axosoftBaseURL;
+                                    return module.exports.getAxosoftAccessToken(bot, message, database, axosoftBaseURL)
+                                })
                                 .then(function(axosoftAccessToken){
-                                  userData.axosoftAccessToken = axosoftAccessToken;
-                                  if(axosoftAccessToken){
-                                    resolve(userData);
-                                  }
-                                    reject('no axosoft access token');
+                                    userData.axosoftAccessToken = axosoftAccessToken;
+                                    if(axosoftAccessToken){
+                                      resolve(userData);
+                                    }else{
+                                      reject('no axosoft access token');
+                                    }
                                   })
                                   .catch(function(reason){
                                     console.log(reason);
