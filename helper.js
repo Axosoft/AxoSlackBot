@@ -33,7 +33,7 @@ filterTextMaker: function(message){
                   var filterText = "";
                   module.exports.retrieveDataFromDataBase(message.team, message.user,"users")
                   .then(function(returnedData){
-                          if(returnedData.filter.filterName != null){
+                          if(returnedData.filter != null){
                              filterText = ` filtered by \`${returnedData.filter.filterName}\``
                           }
                           resolve(filterText);
