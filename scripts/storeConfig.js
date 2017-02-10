@@ -5,6 +5,7 @@ var config = {};
 //set defaults
 config.port = 3004;
 config.axosoftClientId = '4b62de06-1f39-41f7-ae38-37ec5262478a'
+config.googleAnalyticsKey = 'UA-31669219-1'
 
 var prefix = process.env.BUILD_LIFECYCLE;
 
