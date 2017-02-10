@@ -77,6 +77,22 @@ sendDataToSlack: function(slackAccessToken, message, body, axoBaseUrl, axosoftTo
                     });
 },
 
+sendEventToGoogleAnalytics: function(accountName, action, label) {
+                  var googleAnalyticsKey = config.googleAnalyticsKey;
+                  var URL = 'https://www.google-analytics.com/collect';
+                  var params = {
+                    v: '1',
+                    tid: googleAnalyticsKey,
+                    t: 'event',
+                    ec: accountName,
+                    ea: action,
+                    el: label,
+                    cid: '555'
+                  };
+
+                  module.exports.makeRequest('POST', URL, params, function(err, response, body){});
+},
+
 attachmentMaker: function (Body, axoBaseUrl, axosoftToken, myKeyWordExists){
                     return new Promise(function(resolve, reject){
                           var attachmentArrays = [];

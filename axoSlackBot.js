@@ -134,6 +134,8 @@ controller.hears('(get my|get) (.*)(items)(.*)',['direct_message,direct_mention,
           .then(function(returnedData){
                 var axoBaseUrl = returnedData.axosoftBaseURL;
                 var slackToken = returnedData.slackAccessToken;
+                
+                helper.sendEventToGoogleAnalytics(axoBaseUrl, 'getMany', message.text);
 
                 if(validNumber){
                      helper.paramsBuilder(axoBaseUrl, userData.axosoftAccessToken, slackToken, message)
@@ -231,6 +233,9 @@ controller.hears('(.*)(axo)(d|f|t|i|[]{0})(\\s|[]{0})(\\d+)(.*)',['direct_messag
             .then(function(returnedData){
                   var axoBaseUrl = returnedData.axosoftBaseURL;
                   var slackToken = returnedData.slackAccessToken;
+
+                  helper.sendEventToGoogleAnalytics(axoBaseUrl, 'getOne', message.text);
+
                   if(item_id > 2147483647){
                     helper.sendTextToSlack(slackToken, channelId, `I could not find item \`# ${item_id}\``);
                   }else{
@@ -297,6 +302,10 @@ controller.hears(['help','Help','HELP'],['direct_message,direct_mention,mention'
     helper.retrieveDataFromDataBase(message.team, message.user,"teams")
     .then(function(returnedData){
         var slackAccessToken = returnedData.slackAccessToken;
+        var axoBaseUrl = returnedData.axosoftBaseURL;
+
+        helper.sendEventToGoogleAnalytics(axoBaseUrl, 'help', message.text);
+
         helper.attachmentMakerForHelpOptions()
         .then(function(attach){
           var params = {
