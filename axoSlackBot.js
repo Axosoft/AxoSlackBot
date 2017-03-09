@@ -116,10 +116,8 @@ controller.on('rtm_open',function(bot) {
 controller.on('rtm_close', function(bot, err) {
         bot.startRTM(function(err,bot,payload) {
                 if (err) {
-                        console.log(bot.config.axosoftBaseURL + ': Failed to start RTM')
-                        return setTimeout(start_rtm, 60000);
+                  return setTimeout(start_rtm, 60000);
                 }
-                console.log(bot.config.axosoftBaseURL + ": RTM started!");
                 });
         });
 
