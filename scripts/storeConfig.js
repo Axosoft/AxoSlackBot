@@ -11,14 +11,17 @@ var prefix = process.env.BUILD_LIFECYCLE;
 
 if (process.env.BUILD_LIFECYCLE == 'dev') {
     config.clientId = '2574228432.116076023584';
+    config.LogToDB = true;
 }
 else if (process.env.BUILD_LIFECYCLE == 'staging') {
     config.clientId = '2574228432.117458216726';
+    config.LogToDB = true;
 }
 
 else if (process.env.BUILD_LIFECYCLE == 'production') {
     config.clientId = '2574228432.104777884963';
     prefix = '';    
+    config.LogToDB = true;
 }
 
 config.baseUri = 'https://'+ prefix + 'slackbot.axosoft.com';

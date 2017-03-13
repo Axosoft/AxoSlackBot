@@ -133,7 +133,7 @@ controller.hears('(get my|get) (.*)(items)(.*)',['direct_message,direct_mention,
                 var axoBaseUrl = returnedData.axosoftBaseURL;
                 var slackToken = returnedData.slackAccessToken;
                 
-                helper.sendEventToGoogleAnalytics(axoBaseUrl, 'getMany', message.text);
+                helper.logRequestToDB(axoBaseUrl, 'getMany');
 
                 if(validNumber){
                      helper.paramsBuilder(axoBaseUrl, userData.axosoftAccessToken, slackToken, message)
@@ -224,7 +224,7 @@ controller.hears(['help','Help','HELP'],['direct_message,direct_mention,mention'
         var slackAccessToken = returnedData.slackAccessToken;
         var axoBaseUrl = returnedData.axosoftBaseURL;
 
-        helper.sendEventToGoogleAnalytics(axoBaseUrl, 'help', message.text);
+        helper.logRequestToDB(axoBaseUrl, 'help');
 
         helper.attachmentMakerForHelpOptions()
         .then(function(attach){

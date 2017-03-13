@@ -900,6 +900,24 @@ validateRequstedPageNumber: function(message){
                               }
 },
 
+logRequestToDB: function(axosoftUrl, method){
+                        //only log if Config option set
+                        if (config.LogToDB) {
+                          return new Promise(function(resolve, reject){
+                                MongoClient.connect(config.mongoUri, function(err, database){
+                                    if(err) return console.log(err);
+                                    database.collection('log').insertOne({
+                                      axosoftUrl: axosoftUrl,
+                                      method: method,
+                                      ts: new Date()
+                                    });
+                                    database.close();
+                                    resolve("");
+                                });
+                          });
+                        }
+},
+
   postSingleItemToSlack: function (bot, message, item_type, item_id, link) {
     var channelId = message.channel;
 
@@ -931,6 +949,10 @@ validateRequstedPageNumber: function(message){
           .then(function (returnedData) {
             var axoBaseUrl = returnedData.axosoftBaseURL;
             var slackToken = returnedData.slackAccessToken;
+            
+            // log to db
+            module.exports.logRequestToDB(axoBaseUrl, 'getOne'); 
+
             // check to ensure link is for account
             if (link && message.match[0].indexOf(axoBaseUrl) < 0 ) {
               return;
