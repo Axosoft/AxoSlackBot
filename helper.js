@@ -898,6 +898,105 @@ validateRequstedPageNumber: function(message){
                               }else{
                                 return true;
                               }
-}
+},
+
+  postSingleItemToSlack: function (bot, message, item_type, item_id, link) {
+    var channelId = message.channel;
+
+    var columns = "name,id,priority,due_date,workflow_step,remaining_duration.duration_text,item_type,assigned_to,release,description";
+    var formatDueDate = function (dueDate) {
+      if (dueDate == null) return '';
+      else return '*Due Date:* ' + module.exports.timeFormat(dueDate);
+    };
+
+    var formatColumns = function (itemType) {
+      if (itemType != "features") {
+        return columns;
+      }
+      else {
+        return columns + ",custom_fields.custom_1";
+      }
+    };
+
+    var formatWorkItemType = function (workItemType) {
+      if (workItemType == null) return '';
+      else {
+        return `\n *Work Item Type:* ${axosoftData.workItemType}`;
+      }
+    };
+
+    module.exports.checkAxosoftDataForUser(bot, message)
+      .then(function (userData) {
+        module.exports.retrieveDataFromDataBase(message.team, message.user, "teams")
+          .then(function (returnedData) {
+            var axoBaseUrl = returnedData.axosoftBaseURL;
+            var slackToken = returnedData.slackAccessToken;
+            // check to ensure link is for account
+            if (link && message.match[0].indexOf(axoBaseUrl) < 0 ) {
+              return;
+            }
+            else if (item_id > 2147483647) {
+              module.exports.sendTextToSlack(slackToken, channelId, `I could not find item \`# ${item_id}\``);
+            } else  {
+              var params = {};
+              params.access_token = userData.axosoftAccessToken;
+              params.columns = formatColumns(item_type);
+              params.page_size = 1;
+
+              if (item_type === 'incidents') {
+                params.search_field = 'number';
+                params.search_string = item_id;
+              }
+              else { params.filters = `id=${item_id}`; }
+
+              var args = [params];
+              var nodeAxo = new nodeAxosoft(axoBaseUrl, userData.axosoftAccessToken);
+              nodeAxo.promisify(module.exports.axosoftApiMethod(nodeAxo, item_type).get, args)
+                .then(function (response) {
+                  if (response.data.length == 0) {
+                    module.exports.sendTextToSlack(slackToken, channelId, `I could not find item \`# ${message.match[5]}\``);
+                  } else {
+                    var axosoftData = module.exports.axosoftDataBuilder(axoBaseUrl, response.data[0]);
+                    var params = {
+                      token: slackToken,
+                      channel: channelId,
+                      mrkdwn: true,
+                      attachments: JSON.stringify([{
+                        color: "#38B040",
+                        fallback: `${axosoftData.number}: ${axosoftData.name}`,
+                        text: `<${axosoftData.link}|${axosoftData.number}>: ${axosoftData.name}${axosoftData.has_attachments ? ' :paperclip:' : ''}`,
+                        fields: module.exports.formatAxosoftItemData(axosoftData),
+                        mrkdwn_in: ["text"]
+                      }])
+                    };
+                    module.exports.makeRequest("GET", "https://slack.com/api/chat.postMessage", params, function (err, response, body) { });
+                  }
+                })
+                .catch(function (error) {
+                  console.log(error.statusCode);
+                  if (error.statusCode == 401) {
+                    module.exports.setAxosoftAccessToken(bot, message, axoBaseUrl);
+                  }
+                });
+            }
+            var nodeAxo = new nodeAxosoft(axoBaseUrl, args[0].access_token);
+          })
+          .catch(function (reason) {
+            console.log(reason);
+          })
+      })
+      .catch(function (reason) {
+        console.log(reason);
+        if (reason == "No collection") {
+          module.exports.createNewCollection(message)
+            .then(function (val) {
+              module.exports.authorizeUserwithoutCollection(bot, message);
+            }).catch(function (reason) {
+              //TODO not a bad idea to slack user! 
+              console.log("Something went wrong with building a collection for the new user in the database!");
+            })
+        }
+      });
+  }
 
 };
