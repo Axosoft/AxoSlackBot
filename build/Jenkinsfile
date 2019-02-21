@@ -1,0 +1,45 @@
+#!groovy
+properties([disableConcurrentBuilds(), buildDiscarder(logRotator(artifactDaysToKeepStr: '14', artifactNumToKeepStr: '14', daysToKeepStr: '14', numToKeepStr: '14'))])
+
+
+if (env.BRANCH_NAME == "dev") {
+  buildAndDeploy {
+    configuration = 'dev'
+    dockerTag = "dev"
+  }
+} else if (env.BRANCH_NAME == "production") {
+  buildAndDeploy {
+    configuration = 'production'
+    dockerTag = "release"
+  }
+}
+
+def buildAndDeploy(Closure body) {
+  def config = [:]
+  body.delegate = config
+  body.resolveStrategy = Closure.DELEGATE_FIRST
+  body()
+
+  gloPipeline {
+    target = "Axosoft Slack Bot"
+    configuration = config.configuration
+    dockerRepo = "axosoft-slack-bot"
+    dockerTag = config.dockerTag
+    slackChannel = "#web-dev-stream"
+    awsAccount = "axosoft"
+    awsCluster = "AxosoftWebsitesCluster"
+    awsService = "axosoft-slack-bot"
+
+    buildScript = {
+      // copy config.json file
+      configFileProvider([configFile(fileId: "axoslackbot-${configuration}-config", variable: 'CONFIG_PATH')]) {
+        sh "cat $CONFIG_PATH > ./config.json"
+      }
+    }
+
+    preDockerScript = {
+      // copy Dockerfile
+      sh "cp ./build/Dockerfile ./Dockerfile"
+    }
+  }
+}

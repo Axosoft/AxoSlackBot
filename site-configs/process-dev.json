@@ -1,10 +1,9 @@
 {
-  apps : [{
-    name        : "devslackbot.axosoft.com",
-    script      : "axoSlackBot.js",
-    env: {
-      "PORT": "3004",
-    },
-    watch       : ["web.config"]
+  "apps" : [{
+    "name"        : "devslackbot.axosoft.com",
+    "script"      : "axoSlackBot.js",
+    "env": {
+      "PORT": "3004"
+    }
   }]
 }

@@ -1,0 +1,11 @@
+{
+  "axosoftClientId": "xxxx",
+  "axosoftClientSecret": "xxxx",
+  "baseUri":"https://devslackbot.axosoft.com",
+  "clientId": "xxxx",
+  "clientSecret": "xxxx",
+  "googleAnalyticsKey": "xxxx",
+  "LogToDB": true,
+  "mongoUri": "xxxx",
+  "port": 1234
+}
