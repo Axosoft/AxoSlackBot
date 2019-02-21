@@ -7,7 +7,7 @@ if (env.BRANCH_NAME == "dev") {
     configuration = 'dev'
     dockerTag = "dev"
   }
-} else if (env.BRANCH_NAME == "production") {
+} else if (env.BRANCH_NAME == "master") {
   buildAndDeploy {
     configuration = 'production'
     dockerTag = "release"
