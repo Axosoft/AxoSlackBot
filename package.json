@@ -11,8 +11,8 @@
   "author": "B.Amiri",
   "license": "ISC",
   "repository": {
-  "type": "git",
-  "url": "git://github.com/Axosoft/AxoSlackBot.git"
+    "type": "git",
+    "url": "git://github.com/Axosoft/AxoSlackBot.git"
   },
   "dependencies": {
     "botkit": "^0.4.0",
